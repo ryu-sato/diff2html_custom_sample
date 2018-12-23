@@ -1,0 +1,22 @@
+<%= form_with(model: diff_set, local: true) do |form| %>
+  <% if diff_set.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(diff_set.errors.count, "error") %> prohibited this diff_set from being saved:</h2>
+
+      <ul>
+      <% diff_set.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :diffs %><br />
+    <%= form.collection_select :diff_ids, Diff.all, :id, :id, { selected: @diff_set.diff_ids, include_blank: false }, { multiple: true } %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

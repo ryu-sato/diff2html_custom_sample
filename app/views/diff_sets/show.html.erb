@@ -1,0 +1,57 @@
+<p id="notice"><%= notice %></p>
+
+<% @diff_set.diffs.each do |diff| %>
+  <div class="diff_unit" id="diff_unit_<%= diff.id %>">
+    <div class="diff_html" id="diff_html_<%= diff.id %>"></div>
+    <div class="diff_string" id="diff_string_<%= diff.id %>" style="display:none"><%= diff.content.html_safe %></div>
+  </div>
+<% end %>
+
+<%= link_to 'Edit', edit_diff_path(@diff_set) %> |
+<%= link_to 'Back', diff_sets_path %>
+
+<script type="text/javascript">
+    $(function () {
+        $(".diff_unit").each(function(index, element) {
+            var diff_unit_path = element.id.replace(/^diff_unit_(\d+)/, "<%= diffs_path %>/$1")
+            // base template ref: https://github.com/rtfpessoa/diff2html/blob/master/src/templates/side-by-side-file-diff.mustache
+            var customRawTemplates = {
+                'side-by-side-file-diff': (function () {/*
+                    <div id="{{fileHtmlId}}" class="d2h-file-wrapper" data-lang="{{file.language}}">
+                        <div class="d2h-file-header">
+                        <a href="##diffUnitLink##">
+                            {{{filePath}}}
+                        </a>
+                        </div>
+                        <div class="d2h-files-diff">
+                            <div class="d2h-file-side-diff">
+                                <div class="d2h-code-wrapper">
+                                    <table class="d2h-diff-table">
+                                        <tbody class="d2h-diff-tbody">
+                                        {{{diffs.left}}}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="d2h-file-side-diff">
+                                <div class="d2h-code-wrapper">
+                                    <table class="d2h-diff-table">
+                                        <tbody class="d2h-diff-tbody">
+                                        {{{diffs.right}}}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    */}).toString().match(/(?:\/\*(?:[\s\S]*?)\*\/)/).pop().replace(/^\/\*/, "").replace(/\*\/$/, "").replace('##diffUnitLink##', diff_unit_path)
+            };
+            var diff_string = $("#" + element.id + ">.diff_string").text();
+            var diffHtml = Diff2Html.getPrettyHtml(
+                diff_string,
+                {inputFormat: 'diff', showFiles: false, matching: 'lines', outputFormat: 'side-by-side', rawTemplates: customRawTemplates }
+            );
+            $("#" + element.id + ">.diff_html").html(diffHtml);
+        });
+    });
+</script>

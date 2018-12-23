@@ -63,3 +63,5 @@ gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 
 # use webpacker ref: https://github.com/rails/webpacker
 gem 'webpacker', '~> 3.5'
+
+gem 'jquery-rails'

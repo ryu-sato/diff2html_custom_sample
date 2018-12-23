@@ -9,6 +9,9 @@
 
 console.log('Hello World from Webpacker')
 
+import 'bootstrap/dist/js/bootstrap';
 import 'diff2html';
- 
+
+global.$ = global.jQuery = require('jquery');
+
 import '../src/application';

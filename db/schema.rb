@@ -10,12 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_12_23_094505) do
+ActiveRecord::Schema.define(version: 2018_12_23_104220) do
+
+  create_table "diff_sets", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "diffs", force: :cascade do |t|
     t.text "content", limit: 65536
+    t.integer "diff_set_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["diff_set_id"], name: "index_diffs_on_diff_set_id"
   end
 
 end
