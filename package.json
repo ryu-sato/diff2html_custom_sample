@@ -1,5 +1,11 @@
 {
   "name": "diff2html_custom_sample",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "@rails/webpacker": "3.5",
+    "diff2html": "^2.5.0"
+  },
+  "devDependencies": {
+    "webpack-dev-server": "2.11.2"
+  }
 }

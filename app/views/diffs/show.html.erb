@@ -1,0 +1,16 @@
+<p id="notice"><%= notice %></p>
+
+<div id="diff_html"></div>
+<div id="diff_string" style="display:none"><%= @diff.content.html_safe %></div>
+
+<%= link_to 'Edit', edit_diff_path(@diff) %> |
+<%= link_to 'Back', diffs_path %>
+
+<script>
+  var diff_string = document.getElementById("diff_string").innerText
+  var diffHtml = Diff2Html.getPrettyHtml(
+    diff_string,
+    {inputFormat: 'diff', showFiles: true, matching: 'lines', outputFormat: 'side-by-side'}
+  );
+  document.getElementById("diff_html").innerHTML = diffHtml;
+</script>
