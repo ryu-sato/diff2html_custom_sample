@@ -12,6 +12,8 @@
 
 <script type="text/javascript">
     $(function () {
+        'use strict';
+
         $(".diff_unit").each(function(index, element) {
             var diff_unit_path = element.id.replace(/^diff_unit_(\d+)/, "<%= diffs_path %>/$1")
             // base template ref: https://github.com/rtfpessoa/diff2html/blob/master/src/templates/side-by-side-file-diff.mustache
@@ -19,9 +21,7 @@
                 'side-by-side-file-diff': (function () {/*
                     <div id="{{fileHtmlId}}" class="d2h-file-wrapper" data-lang="{{file.language}}">
                         <div class="d2h-file-header">
-                        <a href="##diffUnitLink##">
                             {{{filePath}}}
-                        </a>
                         </div>
                         <div class="d2h-files-diff">
                             <div class="d2h-file-side-diff">
@@ -44,7 +44,8 @@
                             </div>
                         </div>
                     </div>
-                    */}).toString().match(/(?:\/\*(?:[\s\S]*?)\*\/)/).pop().replace(/^\/\*/, "").replace(/\*\/$/, "").replace('##diffUnitLink##', diff_unit_path)
+                    */}).toString().match(/(?:\/\*(?:[\s\S]*?)\*\/)/).pop().replace(/^\/\*/, "").replace(/\*\/$/, ""),
+                'tag-file-changed': '<span class="d2h-tag d2h-changed d2h-changed-tag">CHANGED</span><a href="##diffUnitLink##"><span class="badge badge-secondary">全行Diff</span></a>'.replace('##diffUnitLink##', diff_unit_path)
             };
             var diff_string = $("#" + element.id + ">.diff_string").text();
             var diffHtml = Diff2Html.getPrettyHtml(
