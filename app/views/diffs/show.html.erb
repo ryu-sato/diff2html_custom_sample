@@ -86,11 +86,7 @@
       if (currentAnchorName === '') {
         return;
       }
-      var activeTd = $(`a#${currentAnchorName}`).parent().first();
-      if (!activeTd) {
-        return;
-      }
-      var activeTr = activeTd.parent().first();
+      var activeTr = $(`a#${currentAnchorName}`).parents("tr");
       if (!activeTr) {
         return;
       }
@@ -153,5 +149,66 @@
 
     $("#next").bind("click", onClickNext);
     $("#prev").bind("click", onClickPrev);
+  });
+  
+  // コメント追加機能
+  $(function() {
+    // コメントフォームを挿入する
+    function onClickAddComment() {
+      var activeTr = $(this).parents("tr");
+      if (!activeTr) {
+        return;
+      }
+
+      var addCommentFormStr = '<form class="addComment">'
+        + '<div class="card">'
+        + '<div class="card-header">Comment</div>'
+        + '<div class="card-body">'
+        + '<div class="form-group"><textarea class="form-control" id="comment" placeholder="Leave a comment"></textarea></div>'
+        + '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
+        + '<button type="submit" class="btn btn-success">Submit</button>'
+        + '</div>'
+        + '</div>'
+        + '</form>';
+      activeTr.after('<tr><td colspan="2">' + addCommentFormStr + '</td></tr>');
+      $("form.addComment button:contains('Cancel')").bind('click', function() {
+        var tr = $(this).parents("tr");
+        if (!tr) {
+          return;
+        }
+        tr.remove();
+      });
+    }
+
+    // コメントフォームの挿入ボタンを各行に配置する(通常は非表示でマウスオーバした時のみ表示する)
+    $(".d2h-file-wrapper").each(function(index, element) {
+      $(this).find(".d2h-file-side-diff[data-side='right'] .d2h-code-side-linenumber").each(function(index, element) {
+        var lineNum = Number($(this).text());
+        var codeLine = $(this).next();
+        if (!codeLine) {
+          return;
+        }
+        addCommentBtn = $("<button class='btn dcs-add-comment'>&#43;</button>");
+        addCommentBtn.css("visibility", "hidden");
+        addCommentBtn.bind("click", onClickAddComment);
+        codeLine.prepend(addCommentBtn);
+        codeLine.hover(
+          function() {
+            var addCommentBtn = $(this).children(".dcs-add-comment");
+            if (!addCommentBtn) {
+              return;
+            }
+            addCommentBtn.css("visibility", "visible");
+          },
+          function() {
+            var addCommentBtn = $(this).children(".dcs-add-comment");
+            if (!addCommentBtn) {
+              return;
+            }
+            addCommentBtn.css("visibility", "hidden");
+          }
+        );
+      });
+    });
   });
 </script>
