@@ -60,7 +60,7 @@
   $(function() {
     $(".d2h-file-wrapper").each(function(index, element) {
       var prev = null;
-      $(this).find(".d2h-file-side-diff[data-side='right'] .d2h-code-side-linenumber.d2h-change").each(function(index, element) {
+      $(this).find(".d2h-file-side-diff[data-side='right'] .d2h-code-side-linenumber.d2h-ins,.d2h-file-side-diff[data-side='right'] .d2h-code-side-linenumber.d2h-change").each(function(index, element) {
         var line_num = Number($(this).text());
         var anchor = $(`<a name="r_${line_num}" id="r_${line_num}" />`);
         if (prev != null) {
@@ -72,8 +72,42 @@
       });
     });
   });
+  
+  // 現在の差分行にスタイルを適用する
+  $(function() {
+    // 現在の差分行へ適用したスタイルを全て取り除く
+    function clearClassFromAllActiveLine() {
+      $(".dcs-active-line").removeClass("dcs-active-line");
+    }
+    
+    // 現在の差分行へスタイルを適用する
+    function setActiveLineClass() {
+      var currentAnchorName = location.hash.replace(/^#/, '');
+      if (currentAnchorName === '') {
+        return;
+      }
+      var activeTd = $(`a#${currentAnchorName}`).parent().first();
+      if (!activeTd) {
+        return;
+      }
+      var activeTr = activeTd.parent().first();
+      if (!activeTr) {
+        return;
+      }
+      activeTr.addClass("dcs-active-line");
+    }
 
-  // 次の差分へ移動するボタンを有効化する
+    // アンカー変更時にスタイルを再適用する
+    function handleHashChange() {
+      clearClassFromAllActiveLine();
+      setActiveLineClass();
+    }
+
+    handleHashChange();
+    window.onhashchange = handleHashChange;
+  });
+
+  // 差分へ移動するボタンを有効化する
   $(function() {
     'use strict';
 
@@ -97,6 +131,27 @@
       location.href = `#${nextAnchor}`;
     }
 
+    // 前の差分を表示させる
+    function onClickPrev(event) {
+      var currentAnchorName = location.hash.replace(/^#/, '');
+      var nextAnchor = null;
+      if (currentAnchorName === '') {
+        var nextAnchor = $(`.d2h-file-side-diff[data-side='right'] a[name^=r_]`).last().attr('name');
+      } else {
+        var currentAnchor = $(`#${currentAnchorName}`);
+        if (!currentAnchor) {
+          return;
+        }
+        nextAnchor = currentAnchor.attr('data-prev-change');
+      }
+
+      if (!nextAnchor) {
+        return;
+      }
+      location.href = `#${nextAnchor}`;
+    }
+
     $("#next").bind("click", onClickNext);
+    $("#prev").bind("click", onClickPrev);
   });
 </script>
