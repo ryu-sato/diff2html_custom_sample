@@ -9,16 +9,14 @@
 
 console.log('Hello World from Webpacker')
 
+// use bootstrap
 import 'bootstrap/dist/js/bootstrap';
+
+// use diff2html
 import 'diff2html';
-import 'datatables.net';
-import 'datatables.net-bs4';
 
-global.$ = global.jQuery = require('jquery');
-global.dt = require( 'datatables.net' )( global.window, global.$ );
-global.buttons = require( 'datatables.net-buttons' )( global.window, global.$ );
-
+// use datatable
+import 'datatables.net'
+import 'datatables.net-bs4'
+//   init datatable
 import './datatables';
-
-// Styles
-import '../src/application';
