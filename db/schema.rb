@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_12_23_104220) do
+ActiveRecord::Schema.define(version: 2019_01_15_165707) do
+
+  create_table "comments", force: :cascade do |t|
+    t.integer "diff_id"
+    t.bigint "line"
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["diff_id"], name: "index_comments_on_diff_id"
+  end
 
   create_table "diff_sets", force: :cascade do |t|
     t.datetime "created_at", null: false

@@ -155,16 +155,24 @@
   $(function() {
     // コメントフォームを挿入する
     function onClickAddComment() {
+      var lineNum = Number($(this).parent().prev().text());
+      if (!lineNum) {
+        console.debug("invalid lineNum");
+        return;
+      }
       var activeTr = $(this).parents("tr");
       if (!activeTr) {
         return;
       }
 
-      var addCommentFormStr = '<form class="addComment">'
+      var addCommentFormStr = '<form class="addComment" action="/comments" data-remote="true" method="post">'
         + '<div class="card">'
         + '<div class="card-header">Comment</div>'
         + '<div class="card-body">'
-        + '<div class="form-group"><textarea class="form-control" id="comment" placeholder="Leave a comment"></textarea></div>'
+        + '<div class="form-group">'
+        + '<input type="hidden" name="comment[diff_id]" value="' + <%= @diff.id %> + '" />'
+        + `<input type="hidden" name="comment[line]" value="${lineNum}" />`
+        + '<textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment"></textarea>'
         + '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
         + '<button type="submit" class="btn btn-success">Submit</button>'
         + '</div>'
