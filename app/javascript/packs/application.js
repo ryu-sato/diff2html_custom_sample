@@ -9,6 +9,9 @@
 
 console.log('Hello World from Webpacker')
 
+import 'jquery';
+import "popper.js/dist/popper";
+
 // use bootstrap
 import 'bootstrap/dist/js/bootstrap';
 

@@ -1,5 +1,5 @@
 class DiffsController < ApplicationController
-  before_action :set_diff, only: [:show, :edit, :update, :destroy]
+  before_action :set_diff, only: [:show, :edit, :update, :destroy, :comments]
 
   # GET /diffs
   # GET /diffs.json
@@ -58,6 +58,14 @@ class DiffsController < ApplicationController
     respond_to do |format|
       format.html { redirect_to diffs_url, notice: 'Diff was successfully destroyed.' }
       format.json { head :no_content }
+    end
+  end
+  
+  # GET /diffs/1/comments.json
+  def comments
+    @comments = @diff.comments
+    respond_to do |format|
+      format.json { render "comments/index" }
     end
   end
 
