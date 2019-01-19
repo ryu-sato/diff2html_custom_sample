@@ -9,6 +9,11 @@
 
 console.log('Hello World from Webpacker')
 
+// use rails-ujs
+import Rails from 'rails-ujs';
+Rails.start();
+
+// use jquery
 import 'jquery';
 import "popper.js/dist/popper";
 
