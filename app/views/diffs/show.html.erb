@@ -166,18 +166,20 @@
         + '<div class="card-body">'
         + '<pre>' + comment.content + '</pre>'
         + '<p class="card-text"><small class="text-muted">Updated at ' + comment.updated_at + '</small></p>'
-        + '<a href="<%= comments_path %>/' + comment.id + '" rel="nofollow" data-method="delete" data-confirm="Are you sure?">Delete</a>'
+        + '<a href="#" class="mr-2"><button class="btn btn-sm btn-outline-dark">Edit</button></a>'
+        + '<a href="<%= comments_path %>/' + comment.id + '" rel="nofollow" data-method="delete" data-confirm="Are you sure?"><button class="btn btn-sm btn-outline-danger">Delete</button></a>'
         + '</div>'
         + '</div>'
         + '</td></tr>';
     }
-    
+
     // コメントをafterログへ挿入する
     function appendCommentToBelowLine(comment) {
       var td = null;
       $(`.d2h-file-side-diff[data-side='right'] td.d2h-code-side-linenumber`).each(function() {
         if ($(this).text() == comment.line) {
           td = $(this);
+          return;
         }
       });
       if (!td || !td.parent()) {
@@ -193,6 +195,7 @@
       $(`.d2h-file-side-diff[data-side='left'] td.d2h-code-side-linenumber`).each(function() {
         if ($(this).text() == comment.line) {
           td = $(this);
+          return;
         }
       });
       if (!td || !td.parent()) {
@@ -200,6 +203,10 @@
         return;
       }
       td.parent().after(commentTag(comment, false));
+    }
+    
+    // コメントタグを編集フォームに置き換える
+    function setCommentFormUpdateMode() {
     }
 
     // コメント一覧を取得し、HTMLへ挿入する
@@ -213,7 +220,6 @@
     })
     .always(function(comments) {
       $.each(comments, function(i, comment) {
-        // alert(JSON.stringify(comment));
         appendCommentToBelowLine(comment);
         appendHiddenCommentToBelowLine(comment);
       });
