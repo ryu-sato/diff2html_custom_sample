@@ -251,7 +251,7 @@
     // コメントフォームをafterログへ挿入する
     function appendCommentForm(lineNum, baseTr) {
       baseTr.after('<tr><td colspan="2">' + commentFormTag(lineNum) + '</td></tr>');
-      $(`#add-comment-${lineNum}`).bind('click', function() {
+      $(`#add-comment-${lineNum} button:contains("Cancel")`).bind('click', function() {
         // キャンセルボタンが押されたらフォームを削除する
         var tr = $(this).parents("tr");
         if (!tr) {

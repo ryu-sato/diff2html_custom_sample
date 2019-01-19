@@ -13,6 +13,10 @@ console.log('Hello World from Webpacker')
 import Rails from 'rails-ujs';
 Rails.start();
 
+// use Turbolinks
+import Turbolinks from "turbolinks";
+Turbolinks.start();
+
 // use jquery
 import 'jquery';
 import "popper.js/dist/popper";
