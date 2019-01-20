@@ -151,8 +151,10 @@
     $("#prev").bind("click", onClickPrev);
   });
   
-  // コメントを表示する
   $(function() {
+    /*
+      コメントを表示する
+     */
     // コメントタグを返す
     function commentTag(comment, visible = true) {
       var begTr = '<tr>';
@@ -224,13 +226,13 @@
         appendHiddenCommentToBelowLine(comment);
       });
     });
-  });
-  
-  // コメント追加機能
-  $(function() {
+    
+    /*
+      コメント追加機能
+     */
     // コメントフォームタグを返す
-    function commentFormTag(lineNum, visible = true) {
-      var begForm = `<form id="add-comment-${lineNum}" class="add-comment" action="<%= comments_path %>" data-remote="true" method="post">`;
+    function commentFormTag(comment, visible = true) {
+      var begForm = `<form id="add-comment-${comment.line}" class="add-comment" action="<%= comments_path %>" data-remote="true" method="post">`;
       var begCard = '<div class="card">';
       var buttons = '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
                       + '<button type="submit" class="btn btn-success">Submit</button>'
@@ -245,8 +247,9 @@
         + '<div class="card-header">Comment</div>'
         + '<div class="card-body">'
         + '<div class="form-group">'
+        + `<input type="hidden" name="comment[id]" value="${comment.id || ''}" />`
         + '<input type="hidden" name="comment[diff_id]" value="' + <%= @diff.id %> + '" />'
-        + `<input type="hidden" name="comment[line]" value="${lineNum}" />`
+        + `<input type="hidden" name="comment[line]" value="${comment.line}" />`
         + '<textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment"></textarea>'
         + buttons
         + '</div>'
@@ -255,9 +258,9 @@
     }
 
     // コメントフォームをafterログへ挿入する
-    function appendCommentForm(lineNum, baseTr) {
-      baseTr.after('<tr><td colspan="2">' + commentFormTag(lineNum) + '</td></tr>');
-      $(`#add-comment-${lineNum} button:contains("Cancel")`).bind('click', function() {
+    function appendCommentForm(comment, baseTr) {
+      baseTr.after('<tr><td colspan="2">' + commentFormTag(comment) + '</td></tr>');
+      $(`#add-comment-${comment.line} button:contains("Cancel")`).bind('click', function() {
         // キャンセルボタンが押されたらフォームを削除する
         var tr = $(this).parents("tr");
         if (!tr) {
@@ -271,8 +274,8 @@
     }
 
     // 非表示のコメントフォームをbeforeログへ挿入する(前提としているside-by-side表示で左右の行位置を揃えるために利用する)
-    function appendHiddenCommentForm(lineNum, baseTr) {
-      baseTr.after('<tr><td colspan="2">' + commentFormTag(lineNum, false) + '</td></tr>');
+    function appendHiddenCommentForm(comment, baseTr) {
+      baseTr.after('<tr><td colspan="2">' + commentFormTag(comment, false) + '</td></tr>');
     }
     
     // コメントフォーム追加ボタンが押されたときにafterログにフォームを追加し、beforeログに非表示のフォームを追加して高さを揃える
@@ -289,11 +292,12 @@
         return;
       }
 
-      appendCommentForm(lineNum, baseTr);
+      var comment = { id: null, line: lineNum, content: null }
+      appendCommentForm(comment, baseTr);
 
       indexNum = $(".d2h-file-side-diff[data-side='right'] table.d2h-diff-table tr").index(baseTr);
       baseTr = $(".d2h-file-side-diff[data-side='left'] table.d2h-diff-table tr").eq(indexNum);
-      appendHiddenCommentForm(lineNum, baseTr);
+      appendHiddenCommentForm(comment, baseTr);
     }
 
     // コメントフォームの挿入ボタンを各行に配置する(通常は非表示でマウスオーバした時のみ表示する)
