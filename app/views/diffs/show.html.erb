@@ -147,8 +147,8 @@
       location.href = `#${nextAnchor}`;
     }
 
-    $("#next").bind("click", onClickNext);
-    $("#prev").bind("click", onClickPrev);
+    $("#next").on("click", onClickNext);
+    $("#prev").on("click", onClickPrev);
   });
   
   $(function() {
@@ -157,22 +157,18 @@
      */
     // コメントタグを返す
     function commentTag(comment, visible = true) {
-      var begTr = '<tr>';
-      var begCard = '<div class="card m-2">';
+      var begCard = `<div id="comment-${comment.id}" data-comment-content="${comment.content}" data-comment-id="${comment.id}" data-comment-line="${comment.line}" class="card m-2">`;
       if (!visible) {
-        begTr = '<tr class="d2h-cntx d2h-emptyplaceholder">';
-        begCard = '<div class="card m-2" style="visibility: hidden;">';
+        begCard = `<div id="hidden-comment-${comment.id}" class="card m-2" style="visibility: hidden;">`;
       }
-      return `${begTr}<td colspan="2">`
-        + begCard
+      return begCard
         + '<div class="card-body">'
         + '<pre>' + comment.content + '</pre>'
         + '<p class="card-text"><small class="text-muted">Updated at ' + comment.updated_at + '</small></p>'
-        + '<a href="#" class="mr-2"><button class="btn btn-sm btn-outline-dark">Edit</button></a>'
+        + '<button class="btn btn-sm btn-outline-dark mr-2">Edit</button>'
         + '<a href="<%= comments_path %>/' + comment.id + '" rel="nofollow" data-method="delete" data-confirm="Are you sure?"><button class="btn btn-sm btn-outline-danger">Delete</button></a>'
         + '</div>'
-        + '</div>'
-        + '</td></tr>';
+        + '</div>';
     }
 
     // コメントをafterログへ挿入する
@@ -188,7 +184,8 @@
         // ログを記述する
         return;
       }
-      td.parent().after(commentTag(comment));
+      td.parent().after('<tr><td colspan="2">' + commentTag(comment) + '</td></tr>');
+      $(`#comment-${comment.id} button:contains("Edit")`).on('click', setCommentFormUpdateMode);
     }
 
     // 非表示のコメントをbeforeログへ挿入する(前提としているside-by-side表示で左右の行位置を揃えるために利用する)
@@ -204,11 +201,44 @@
         // ログを記述する
         return;
       }
-      td.parent().after(commentTag(comment, false));
+      td.parent().after('<tr class="d2h-cntx d2h-emptyplaceholder"><td colspan="2">' + commentTag(comment, false) + '</td></tr>');
     }
-    
+
     // コメントタグを編集フォームに置き換える
     function setCommentFormUpdateMode() {
+      var card = $(this).parents("div.card");
+      if (!card) {
+        console.error("Cannot found HTML tag for comment.");
+        return;
+      }
+
+      var id = card.data('comment-id');
+      var content = card.data('comment-content');
+      var line = card.data('comment-line');
+      if (!id || !content || !line) {
+        console.error("Cannot get comment data.");
+        return;
+      }
+      var comment = { id: id, line: line, content: content }
+
+      hiddenCommentTr = $(`#hidden-comment-${id}`).parents('tr');
+      hiddenCommentTr.hide();
+      commentTr = card.parents('tr');
+      commentTr.hide();
+
+      appendHiddenCommentForm(comment, hiddenCommentTr);
+      commentTr.after('<tr><td colspan="2">' + commentFormTag(comment) + '</td></tr>');
+      $(`#edit-comment-${comment.line} button:contains("Cancel")`).on('click', function() {
+        var tr = $(this).parents("tr");
+        if (!tr) {
+          console.error('"tr" tag for comment form is missing.');
+          return;
+        }
+        removeCommentForm(tr);
+
+        commentTr.show();
+        hiddenCommentTr.show();
+      });
     }
 
     // コメント一覧を取得し、HTMLへ挿入する
@@ -232,12 +262,12 @@
      */
     // コメントフォームタグを返す
     function commentFormTag(comment, visible = true) {
-      var begForm = `<form id="add-comment-${comment.line}" class="add-comment" action="<%= comments_path %>" data-remote="true" method="post">`;
+      var begForm = `<form id="edit-comment-${comment.line}" class="edit-comment" action="<%= comments_path %>" data-remote="true" method="post">`;
       var begCard = '<div class="card">';
       var buttons = '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
                       + '<button type="submit" class="btn btn-success">Submit</button>'
       if (!visible) {
-        begForm = '<form class="hidden-add-comment" action="#">';
+        begForm = '<form class="hidden-edit-comment" action="#">';
         begCard = '<div class="card" style="visibility: hidden;">';
         buttons = '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
                     + '<button class="btn btn-success">Submit</button>';
@@ -250,26 +280,32 @@
         + `<input type="hidden" name="comment[id]" value="${comment.id || ''}" />`
         + '<input type="hidden" name="comment[diff_id]" value="' + <%= @diff.id %> + '" />'
         + `<input type="hidden" name="comment[line]" value="${comment.line}" />`
-        + '<textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment"></textarea>'
+        + '<textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">'
+        + (comment.content || '')
+        + '</textarea>'
         + buttons
         + '</div>'
         + '</div>'
         + '</form>';
     }
 
+    // キャンセルボタンが押されたらフォームを削除する
+    function removeCommentForm(formTr) {
+      var indexNum = $(".d2h-file-side-diff[data-side='right'] table.d2h-diff-table tr").index(formTr);
+      $(".d2h-file-side-diff[data-side='left'] table.d2h-diff-table tr").eq(indexNum).remove();
+      formTr.remove();
+    }
+
     // コメントフォームをafterログへ挿入する
     function appendCommentForm(comment, baseTr) {
       baseTr.after('<tr><td colspan="2">' + commentFormTag(comment) + '</td></tr>');
-      $(`#add-comment-${comment.line} button:contains("Cancel")`).bind('click', function() {
-        // キャンセルボタンが押されたらフォームを削除する
+      $(`#edit-comment-${comment.line} button:contains("Cancel")`).on('click', function() {
         var tr = $(this).parents("tr");
         if (!tr) {
-          console.debug('tr is missing');
+          console.error('"tr" tag for comment form is missing.');
           return;
         }
-        var indexNum = $(".d2h-file-side-diff[data-side='right'] table.d2h-diff-table tr").index(tr);
-        $(".d2h-file-side-diff[data-side='left'] table.d2h-diff-table tr").eq(indexNum).remove();
-        tr.remove();
+        removeCommentForm(tr);
       });
     }
 
@@ -310,7 +346,7 @@
         }
         addCommentBtn = $("<button class='btn dcs-add-comment'>&#43;</button>");
         addCommentBtn.css("visibility", "hidden");
-        addCommentBtn.bind("click", onClickAddComment);
+        addCommentBtn.on("click", onClickAddComment);
         codeLine.prepend(addCommentBtn);
         codeLine.hover(
           function() {
