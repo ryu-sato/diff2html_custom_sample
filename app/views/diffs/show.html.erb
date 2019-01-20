@@ -219,13 +219,17 @@
         console.error("Cannot get comment data.");
         return;
       }
-      var comment = { id: id, line: line, content: content }
 
       hiddenCommentTr = $(`#hidden-comment-${id}`).parents('tr');
-      hiddenCommentTr.hide();
       commentTr = card.parents('tr');
+      if (!hiddenCommentTr || !commentTr) {
+        console.error('"tr" tag for comment form or hidden comment form is missing.');
+        return;
+      }
+      hiddenCommentTr.hide();
       commentTr.hide();
 
+      var comment = { id: id, line: line, content: content }
       appendHiddenCommentForm(comment, hiddenCommentTr);
       commentTr.after('<tr><td colspan="2">' + commentFormTag(comment) + '</td></tr>');
       $(`#edit-comment-${comment.line} button:contains("Cancel")`).on('click', function() {
@@ -262,28 +266,33 @@
      */
     // コメントフォームタグを返す
     function commentFormTag(comment, visible = true) {
-      var begForm = `<form id="edit-comment-${comment.line}" class="edit-comment" action="<%= comments_path %>" data-remote="true" method="post">`;
+      if (comment.id) {
+        var begForm = `<form id="edit-comment-${comment.line}" class="edit-comment" action="<%= comments_path %>/${comment.id}" method="post">`;
+        var methodTag = '<input type="hidden" name="_method" value="patch">'
+        var submitBtn = '<input type="submit" class="btn btn-success" value="Update" />';
+      } else {
+        var begForm = `<form id="edit-comment-${comment.line}" class="edit-comment" action="<%= comments_path %>" method="post">`;
+        var methodTag = '';
+        var submitBtn = '<input type="submit" class="btn btn-success" value="Submit" />';
+      }
       var begCard = '<div class="card">';
-      var buttons = '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
-                      + '<button type="submit" class="btn btn-success">Submit</button>'
       if (!visible) {
         begForm = '<form class="hidden-edit-comment" action="#">';
         begCard = '<div class="card" style="visibility: hidden;">';
-        buttons = '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
-                    + '<button class="btn btn-success">Submit</button>';
       }
       return begForm
         + begCard
         + '<div class="card-header">Comment</div>'
         + '<div class="card-body">'
         + '<div class="form-group">'
-        + `<input type="hidden" name="comment[id]" value="${comment.id || ''}" />`
+        + methodTag
         + '<input type="hidden" name="comment[diff_id]" value="' + <%= @diff.id %> + '" />'
         + `<input type="hidden" name="comment[line]" value="${comment.line}" />`
         + '<textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">'
         + (comment.content || '')
         + '</textarea>'
-        + buttons
+        + '<button class="btn btn-outline-secondary mr-2">Cancel</button>'
+        + submitBtn
         + '</div>'
         + '</div>'
         + '</form>';
