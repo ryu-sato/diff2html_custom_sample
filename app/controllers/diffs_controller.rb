@@ -10,6 +10,7 @@ class DiffsController < ApplicationController
   # GET /diffs/1
   # GET /diffs/1.json
   def show
+    render layout: 'diff'
   end
 
   # GET /diffs/new

@@ -3,7 +3,7 @@ Rails.application.routes.draw do
   root to: 'diff_sets#index'
   resources :diff_sets
   resources :diffs do
-    get 'comments', on: :member
+    get :comments, on: :member
   end
   resources :comments, only: [:index, :create, :update, :destroy]
 end
