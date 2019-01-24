@@ -30,5 +30,3 @@ import 'diff2html';
 // use datatable
 import 'datatables.net'
 import 'datatables.net-bs4'
-//   init datatable
-import './datatables';

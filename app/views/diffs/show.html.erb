@@ -8,8 +8,11 @@
 
 <p id="notice"><%= notice %></p>
 
-<div id="diff_html"></div>
-<div id="diff_string" style="display:none"><%= @diff.content.html_safe %></div>
+<div id="cd-diff2html">
+  <app v-bind:diff-unit="diffUnit"></app>
+  <div id="diff_html"></div>
+  <div id="diff_string" style="display:none"><%= @diff.content.html_safe %></div>
+</div>
 
 <%= link_to 'Edit', edit_diff_path(@diff) %> |
 <%= link_to 'Back', diffs_path %>
