@@ -16,22 +16,26 @@ var rawTemplates = {
             {{{filePath}}}
         </div>
         <div class="d2h-files-diff">
-            <div class="d2h-file-side-diff" data-side="left">
+            <div class="d2h-file-side-diff">
                 <div class="d2h-code-wrapper">
-                    <table class="d2h-diff-table">
+                    <diff-table side="left" class="d2h-diff-table">
+                    <template slot-scope="slotProps">
                         <tbody class="d2h-diff-tbody">
                         {{{diffs.left}}}
                         </tbody>
-                    </table>
+                    </template>
+                    </diff-table>
                 </div>
             </div>
-            <div class="d2h-file-side-diff" data-side="right">
+            <div class="d2h-file-side-diff">
                 <div class="d2h-code-wrapper">
-                    <table class="d2h-diff-table">
+                    <diff-table side="right" class="d2h-diff-table">
+                    <template slot-scope="slotProps">
                         <tbody class="d2h-diff-tbody">
                         {{{diffs.right}}}
                         </tbody>
-                    </table>
+                    </template>
+                    </diff-table>
                 </div>
             </div>
         </div>
@@ -45,11 +49,11 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr>
+    <tr>
       <td class="{{lineClass}} {{type}}">
         {{{lineNumber}}}
       </td>
-      <code-td line="{{lineNumber}}" class="{{type}}">
+      <code-td :side="slotProps.side" line="{{lineNumber}}" class="{{type}}">
         <div class="{{contentClass}} {{type}}">
           {{#prefix}}
               <span class="d2h-code-line-prefix">{{{prefix}}}</span>
@@ -59,7 +63,7 @@ var rawTemplates = {
           {{/content}}
         </div>
       </code-td>
-    </diff-tr>
+    </tr>
   */
   }
     .toString()
@@ -94,7 +98,8 @@ var AddBtn = Vue.component("add-btn", {
  */
 var CodeTD = Vue.component("code-td", {
   props: {
-    line: String  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    side: String
   },
   data() {
     return {
@@ -104,8 +109,17 @@ var CodeTD = Vue.component("code-td", {
   components: {
     AddBtn
   },
+  computed: {
+    anchorId: function() {
+      return (this.side == "left" ? "l" : "r") + "_" + this.line;
+    },
+    numberdLine: function() {
+      return (parseInt(this.line) > 0);
+    }
+  },
   template:
     '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
+      '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
       '<add-btn refs="addBtn" v-if="btnSeen" v-bind:line="parseInt(line)"></add-btn>' +
       '<slot></slot>' +
       '</td>',
@@ -158,16 +172,14 @@ var CmtForm = Vue.component("comment-form", {
 })
 
 /**
- * Diffテーブルの行コンポーネント
+ * Diffテーブル全体のコンポーネント
  */
-var DiffTR = Vue.component("diff-tr", {
-  data() {
-    return {
-      formSeen: false
-    }
+var DiffTable = Vue.component("diff-table", {
+  props: {
+    side: String
   },
-  template: "<tr><slot></slot></tr>",
-});
+  template: '<table><slot v-bind:side="side"></slot></table>'
+})
 
 /**
  * 全行Diff用コンポーネント
