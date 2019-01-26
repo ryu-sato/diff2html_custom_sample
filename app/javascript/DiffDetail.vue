@@ -1,5 +1,14 @@
 <template>
-  <div :is="compiled"></div>
+  <div>
+    <div class="d-flex p-2" style="position: sticky; z-index: 1000; top: 0px;">
+      <label class="label mr-2 mt-1">Jump </label>
+      <div class="btn-group" role="group" aria-label="First group">
+        <button id="next" class="btn btn-secondary" @click="nextChange">Next</button>
+        <button id="prev" class="btn btn-secondary" @click="prevChange">Prev</button>
+      </div>
+    </div>
+    <div :is="compiled"></div>
+  </div>
 </template>
 
 <script>
@@ -49,7 +58,7 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <tr>
+    <diff-tr :side="slotProps.side" line="{{lineNumber}}">
       <td class="{{lineClass}} {{type}}">
         {{{lineNumber}}}
       </td>
@@ -63,7 +72,7 @@ var rawTemplates = {
           {{/content}}
         </div>
       </code-td>
-    </tr>
+    </diff-tr>
   */
   }
     .toString()
@@ -169,6 +178,26 @@ var CmtForm = Vue.component("comment-form", {
       </td>
     </tr>
   `
+});
+
+/**
+ * Diffテーブルの行コンポーネント
+ */
+var DiffTr = Vue.component("diff-tr", {
+  props: {
+    line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    side: String
+  },
+  computed: {
+    classObject: function() {
+      var currentName = location.hash.replace(/^#/, '');
+      var name = (this.side == "left" ? "l" : "r") + "_" + this.line
+      return {
+        'dcs-active-line': currentName == name
+      };
+    }
+  },
+  template: '<tr v-bind:class="classObject"><slot v-bind:side="side"></slot></tr>'
 })
 
 /**
@@ -188,7 +217,8 @@ export default {
   props: ["diffString"],
   data() {
     return {
-      compiled: null
+      compiled: null,
+      currentChange: String,
     };
   },
   mounted() {
@@ -209,8 +239,12 @@ export default {
     }, 500);
   },
   created() {
-    EventBus.$on('show-comment-form', this.showCommentForm),
-    EventBus.$on('hide-comment-form', this.hideCommentForm)
+    EventBus.$on('show-comment-form', this.showCommentForm);
+    EventBus.$on('hide-comment-form', this.hideCommentForm);
+    this.currentChange = location.hash.replace(/^#/, '');
+  },
+  updated: function() {
+    console.log("updated");
   },
   methods: {
     showCommentForm(codeLine, trIndex) {
@@ -218,6 +252,12 @@ export default {
     },
     hideCommentForm(codeLine, trIndex) {
       alert("hideCommentForm: " + codeLine + ", " + trIndex);
+    },
+    nextChange() {
+      alert();
+    },
+    prevChange() {
+      alert();
     }
   }
 };
