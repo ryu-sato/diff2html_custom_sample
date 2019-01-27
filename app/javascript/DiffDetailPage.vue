@@ -291,13 +291,24 @@ export default {
       this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
       this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
 
+      var nextIndex = -1;
       var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
       var line = (this.currentChange.slice(2));
       var index = trs.findIndex(tr => tr.line == line);
       if (direction > 0) {
-        var nextIndex = trs.findIndex(tr => (tr.line >= parseInt(line) + 1 && tr.isChanged()));
+        if (isNaN(parseInt(line))) {
+          // カーソルが当たっていなければ最初に見つかった行にカーソルを当てる
+          nextIndex = trs.findIndex(tr => tr.isChanged());
+        } else {
+          nextIndex = trs.findIndex(tr => (tr.line >= parseInt(line) + 1 && tr.isChanged()));
+        }
       } else if (direction < 0) {
-        var nextIndex = trs.reverse().findIndex(tr => (tr.line <= parseInt(line) - 1 && tr.isChanged()));
+        if (isNaN(parseInt(line))) {
+          // カーソルが当たっていなければ最終行から探して、最初に見つかった行にカーソルを当てる
+          nextIndex = trs.reverse().findIndex(tr => tr.isChanged());
+        } else {
+          nextIndex = trs.reverse().findIndex(tr => (tr.line <= parseInt(line) - 1 && tr.isChanged()));
+        }
       }
       if (nextIndex != -1) {
         this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
