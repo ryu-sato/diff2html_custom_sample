@@ -145,6 +145,9 @@ var CodeTD = Vue.component("code-td", {
   }
 });
 
+/**
+ * コメント要素
+ */
 Vue.component("comment", {
   props: {
     comment: {
@@ -171,7 +174,7 @@ Vue.component("comment", {
 });
 
 /**
- * コメント列
+ * コメントリスト
  */
 Vue.component("comment-list", {
   props: {
