@@ -148,18 +148,34 @@ var CodeTD = Vue.component("code-td", {
  */
 var commentForm = Vue.component("comment-form", {
   props: {
-    commentId: Number,
-    line: Number,
-    content: String
+    commentId: -1,  // フォームが更新用の場合は、更新するコメントモデルのID
+    content: "",    // フォームが更新用の場合は、現在のコメント内容
+    side: "",       // フォームを追加する先のコードが左右のどちらか
+    line: -1        // フォームを追加する先のコードの行番号
   },
   data() {
     return {
-      seen: true
+      seen: true,
+      forUpdate: false
     };
+  },
+  created() {
+    /* propData を使ってコンポーネントが作成されたら、その値を基にして props を初期化する */
+    if (this.$options.propData.update !== undefined) {
+      this.update = this.$options.propData.update;
+    }
+    if (this.$options.propData.commentId !== undefined && this.$options.propData.commentId > 0) {
+      this.commentId = this.$options.propData.commentId;
+      this.forUpdate = true;
+    }
+    if (this.$options.propData.line !== undefined && this.$options.propData.line > 0) {
+      this.line = this.$options.propData.line;
+    }
   },
   computed: {
     formId: function() {
       // [TODO] 必要なければ削除する
+      console.dir(this);
       return `edit-comment-${this.line}`;
     },
     formAction: function() {
@@ -181,17 +197,15 @@ var commentForm = Vue.component("comment-form", {
   template: `
     <tr>
       <td colspan="2">
-        <form :id="formId" class="edit-comment" :action="formAction" method="post" v-if="seen">
+        <form :id="formId" class="edit-comment" :action="formAction" method="post">
           <div class="card">
             <div class="card-header">Comment</div>
             <div class="card-body">
               <div class="form-group">
-                <input type="hidden" name="_method" value="patch" />
+                <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
                 <input type="hidden" name="comment[line]" :value="line" />
                 <input type="hidden" name="comment[diff_id]" :value="diffId" />
-                <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">
-                  {{content}}
-                </textarea>
+                <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{content}}</textarea>
                 <button class="btn btn-outline-secondary mr-2" v-on:submit.prevent="destroyForm">Cancel</button>
                 <input type="submit" class="btn btn-success" value="Commit" />
               </div>
@@ -282,6 +296,7 @@ export default {
           }) +
           '</div>'
       );
+
     }, 500);
   },
   created() {
@@ -302,7 +317,7 @@ export default {
       var CommentForm = Vue.component('comment-form');
       var instance = new CommentForm({
         propData: {
-          line: codeLine
+          line: parseInt(codeLine)
         }
       }).$mount();
       trs[index].$el.parentNode.insertBefore(instance.$el, trs[index].$el.nextSibling);
