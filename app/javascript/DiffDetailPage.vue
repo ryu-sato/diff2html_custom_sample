@@ -7,7 +7,7 @@
         <button id="prev" class="btn btn-secondary" @click="prevChange">Prev</button>
       </div>
     </div>
-    <div :is="compiled"></div>
+    <component :is="compiled"><template slot-scope="diffDetailPageProps"></template></component>
   </div>
 </template>
 
@@ -27,7 +27,7 @@ var rawTemplates = {
         <div class="d2h-files-diff">
             <div class="d2h-file-side-diff">
                 <div class="d2h-code-wrapper">
-                    <diff-table side="left" class="d2h-diff-table">
+                    <diff-table side="l" class="d2h-diff-table">
                     <template slot-scope="slotProps">
                         <tbody class="d2h-diff-tbody">
                         {{{diffs.left}}}
@@ -38,7 +38,7 @@ var rawTemplates = {
             </div>
             <div class="d2h-file-side-diff">
                 <div class="d2h-code-wrapper">
-                    <diff-table side="right" class="d2h-diff-table">
+                    <diff-table side="r" class="d2h-diff-table">
                     <template slot-scope="slotProps">
                         <tbody class="d2h-diff-tbody">
                         {{{diffs.right}}}
@@ -58,7 +58,7 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr :side="slotProps.side" line="{{lineNumber}}">
+    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}">
       <td class="{{lineClass}} {{type}}">
         {{{lineNumber}}}
       </td>
@@ -120,7 +120,7 @@ var CodeTD = Vue.component("code-td", {
   },
   computed: {
     anchorId: function() {
-      return (this.side == "left" ? "l" : "r") + "_" + this.line;
+      return this.side + "_" + this.line;
     },
     numberdLine: function() {
       return (parseInt(this.line) > 0);
@@ -129,7 +129,7 @@ var CodeTD = Vue.component("code-td", {
   template:
     '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
       '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
-      '<add-btn refs="addBtn" v-if="btnSeen" v-bind:line="parseInt(line)"></add-btn>' +
+      '<add-btn refs="addBtn" v-if="btnSeen" :line="parseInt(line)"></add-btn>' +
       '<slot></slot>' +
       '</td>',
   methods: {
@@ -186,18 +186,25 @@ var CmtForm = Vue.component("comment-form", {
 var DiffTr = Vue.component("diff-tr", {
   props: {
     line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
-    side: String
+    side: String,
+    currentChange: String
   },
   computed: {
     classObject: function() {
-      var currentName = location.hash.replace(/^#/, '');
-      var name = (this.side == "left" ? "l" : "r") + "_" + this.line
+      var name = this.side + "_" + this.line
       return {
-        'dcs-active-line': currentName == name
+        'dcs-active-line': this.currentChange == name
       };
     }
   },
-  template: '<tr v-bind:class="classObject"><slot v-bind:side="side"></slot></tr>'
+  created() {
+    if (this.side == 'l') {
+      this.$parent.$parent.$parent.$data.leftTrs.push(this);
+    } else if (this.side == 'r') {
+      this.$parent.$parent.$parent.$data.rightTrs.push(this);
+    }
+  },
+  template: '<tr :class="classObject"><slot :side="side"></slot></tr>'
 })
 
 /**
@@ -207,7 +214,15 @@ var DiffTable = Vue.component("diff-table", {
   props: {
     side: String
   },
-  template: '<table><slot v-bind:side="side"></slot></table>'
+  data() {
+    return {
+      currentChange: this.$parent.$parent.$data.currentChange
+    };
+  },
+  created() {
+    this.$parent.$parent.$data.tables.push(this);
+  },
+  template: '<table><slot :side="side" :current-change="currentChange"></slot></table>'
 })
 
 /**
@@ -218,15 +233,16 @@ export default {
   data() {
     return {
       compiled: null,
-      currentChange: String,
+      currentChange: "",
+      tables: [],
+      leftTrs: [],
+      rightTrs: []
     };
   },
   mounted() {
     setTimeout(() => {
-      console.log("this.diffString");
-      console.log(this.diffString);
       this.compiled = Vue.compile(
-        "<div>" +
+        '<div>' +
           Diff2Html.getPrettyHtml(this.diffString, {
             inputFormat: "diff",
             showFiles: true,
@@ -234,11 +250,12 @@ export default {
             outputFormat: "side-by-side",
             rawTemplates: rawTemplates
           }) +
-          "</div>"
+          '</div>'
       );
     }, 500);
   },
   created() {
+    console.log('created');
     EventBus.$on('show-comment-form', this.showCommentForm);
     EventBus.$on('hide-comment-form', this.hideCommentForm);
     this.currentChange = location.hash.replace(/^#/, '');
@@ -254,10 +271,34 @@ export default {
       alert("hideCommentForm: " + codeLine + ", " + trIndex);
     },
     nextChange() {
-      alert();
+      this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
+      this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
+
+      var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
+      var line = (this.currentChange.slice(2));
+      var index = trs.findIndex(tr => tr.line == line);
+      // [TODO] 変更がある行の次を選択する
+      var nextIndex = trs.findIndex(tr => (tr.line != "" && tr.line == parseInt(line) + 1));
+      if (nextIndex != -1) {
+        this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
+        location.href = '#' + trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
+        this.tables.forEach(e => e.currentChange = this.currentChange);
+      }
     },
     prevChange() {
-      alert();
+      this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
+      this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
+
+      var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
+      var line = (this.currentChange.slice(2));
+      var index = trs.findIndex(tr => tr.line == line);
+      // [TODO] 変更がある前の次を選択する
+      var nextIndex = trs.findIndex(tr => (tr.line != "" && tr.line == parseInt(line) - 1));
+      if (nextIndex != -1) {
+        this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
+        location.href = '#' + trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
+        this.tables.forEach(e => e.currentChange = this.currentChange);
+      }
     }
   }
 };

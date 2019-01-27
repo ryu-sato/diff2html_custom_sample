@@ -1,14 +1,14 @@
 <template>
-  <diff-detail :diff-string="diffString"></diff-detail>
+  <diff-detail-page :diff-string="diffString"></diff-detail-page>
 </template>
 
 <script>
-import DiffDetail from './DiffDetail'
+import DiffDetailPage from './DiffDetailPage'
 
 export default {
   props: ['diffUnit'],
   components: {
-    DiffDetail
+    DiffDetailPage
   },
   data () {
     return {
