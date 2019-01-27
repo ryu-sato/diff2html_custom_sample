@@ -244,7 +244,6 @@ var commentForm = Vue.component("comment-form", {
   computed: {
     formId: function() {
       // [TODO] 必要なければ削除する
-      console.dir(this);
       return `edit-comment-${this.line}`;
     },
     formAction: function() {
@@ -259,12 +258,12 @@ var commentForm = Vue.component("comment-form", {
     }
   },
   methods: {
-    destroyForm: function() {
-      this.$delete(this);
+    hide: function() {
+      this.seen = false;
     }
   },
   template: `
-    <tr>
+    <tr v-if="seen">
       <td colspan="2">
         <form :id="formId" class="edit-comment" :action="formAction" method="post">
           <div class="card">
@@ -275,7 +274,7 @@ var commentForm = Vue.component("comment-form", {
                 <input type="hidden" name="comment[line]" :value="line" />
                 <input type="hidden" name="comment[diff_id]" :value="diffId" />
                 <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{content}}</textarea>
-                <button class="btn btn-outline-secondary mr-2" v-on:submit.prevent="destroyForm">Cancel</button>
+                <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="hide">Cancel</button>
                 <input type="submit" class="btn btn-success" value="Commit" />
               </div>
             </div>
@@ -390,7 +389,6 @@ export default {
         }
       }).$mount();
       trs[index].$el.parentNode.insertBefore(instance.$el, trs[index].$el.nextSibling);
-      alert("showCommentForm: " + side + ", " + codeLine);
     },
 
     // コメントフォームを閉じる
