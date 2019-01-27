@@ -271,18 +271,28 @@ export default {
     console.log("updated");
   },
   methods: {
+    // コメントフォームを表示する
     showCommentForm(codeLine, trIndex) {
       alert("showCommentForm: " + codeLine + ", " + trIndex);
     },
+
+    // コメントフォームを閉じる
     hideCommentForm(codeLine, trIndex) {
       alert("hideCommentForm: " + codeLine + ", " + trIndex);
     },
+
+    // 次の変更箇所の行へ進む
     nextChange() {
       this.changeCursor(1);
     },
+
+    // 前の変更箇所の行へ戻る
     prevChange() {
       this.changeCursor(-1);
     },
+
+    // 現在指している変更箇所から見て、進むか戻る方向へ変更箇所をカーソルを移動させる。
+    // カーソルが当たっていない場合は、指定した方向から開始して初めて見つかった箇所にカーソルを当てる。
     changeCursor(direction) {
       if (!(direction > 0 || direction < 0)) {
         console.warn("changedCursor() returned. direction is invalid: " + direction);
