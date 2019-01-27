@@ -64,7 +64,16 @@ class DiffsController < ApplicationController
   
   # GET /diffs/1/comments.json
   def comments
-    @comments = @diff.comments
+    @comments = if params[:line].present?
+                  @diff.comments.where(line: params[:line])
+                else
+                  @diff.comments
+                end
+
+p ("comments")
+p (@comments)
+p ('params[:line]: ' + params[:line])
+
     respond_to do |format|
       format.json { render "comments/index" }
     end

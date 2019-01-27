@@ -15,6 +15,7 @@
 import Vue from "vue";
 import { Diff2Html } from "diff2html";
 import "diff2html/dist/diff2html.min.css";
+import axios from 'axios';
 
 var diff_id = location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
 var rawTemplates = {
@@ -73,6 +74,7 @@ var rawTemplates = {
         </div>
       </code-td>
     </diff-tr>
+    <comment-list line="{{lineNumber}}"></comment-list>
   */
   }
     .toString()
@@ -141,6 +143,70 @@ var CodeTD = Vue.component("code-td", {
       this.btnSeen = false;
     }
   }
+});
+
+Vue.component("comment", {
+  props: {
+    comment: {
+      id: 0,
+      line: -1,
+      content: ""
+    }
+  },
+  computed: {
+    href: function() {
+      return `/comments/${this.comment.id}`;
+    }
+  },
+  template: `
+    <div :data-comment-content="comment.content" :data-comment-id="comment.id" :data-comment-line="comment.line" class="card m-2">
+      <div class="card-body">
+        <pre>{{comment.content}}</pre>
+        <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
+        <button class="btn btn-sm btn-outline-dark mr-2">Edit</button>
+        <a :href="href" rel="nofollow" data-method="delete" data-confirm="Are you sure?"><button class="btn btn-sm btn-outline-danger">Delete</button></a>
+      </div>
+    </div>
+  `
+});
+
+/**
+ * コメント列
+ */
+Vue.component("comment-list", {
+  props: {
+    line: ""
+  },
+  data() {
+    return {
+      comments: [],
+      hasComments: false,
+    }
+  },
+  created() {
+    // 有効な行数を持っていればコメントを取得する
+    if (parseInt(this.line) > 0) {
+      return axios.get(`${this.baseUrl}/comments.json?line=${this.line}`)
+        .then((res) => {
+          this.comments = res.data;
+          this.hasComments = (res.data.length > 0);
+          this.$emit('GET_AJAX_COMPLETE');
+      });
+    }
+  },
+  computed: {
+    baseUrl: function() {
+      return location.pathname;
+    }
+  },
+  template: `
+    <tr v-if="hasComments">
+      <td colspan="2">
+        <comment v-for="comment in comments" :comment="comment" :key="comment.id">
+        </comment>
+      </td>
+    </tr>
+  `
 });
 
 /**
