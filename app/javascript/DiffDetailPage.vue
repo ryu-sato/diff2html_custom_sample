@@ -217,10 +217,12 @@ Vue.component("comment-list", {
  */
 var commentForm = Vue.component("comment-form", {
   props: {
-    commentId: -1,  // フォームが更新用の場合は、更新するコメントモデルのID
-    content: "",    // フォームが更新用の場合は、現在のコメント内容
-    side: "",       // フォームを追加する先のコードが左右のどちらか
-    line: -1        // フォームを追加する先のコードの行番号
+    visible: true,        // 高さを揃えるためだけのフォームの場合はfalseにする
+    commentId: -1,        // フォームが更新用の場合は、更新するコメントモデルのID
+    content: "",          // フォームが更新用の場合は、現在のコメント内容
+    side: "",             // フォームを追加する先のコードが左右のどちらか
+    line: -1,             // フォームを追加する先のコードの行番号
+    adjustComponent: null // 高さ調整のために逆再度に設定したコンポーネントのインスタンス
   },
   data() {
     return {
@@ -229,7 +231,17 @@ var commentForm = Vue.component("comment-form", {
     };
   },
   created() {
+    this.visible = true;
+    this.commentId = -1;
+    this.content = "";
+    this.side = "";
+    this.line = -1;
+    this.adjustComponent = null;
+
     /* propData を使ってコンポーネントが作成されたら、その値を基にして props を初期化する */
+    if (this.$options.propData.visible !== undefined) {
+      this.visible = this.$options.propData.visible;
+    }
     if (this.$options.propData.update !== undefined) {
       this.update = this.$options.propData.update;
     }
@@ -239,6 +251,9 @@ var commentForm = Vue.component("comment-form", {
     }
     if (this.$options.propData.line !== undefined && this.$options.propData.line > 0) {
       this.line = this.$options.propData.line;
+    }
+    if (this.$options.propData.adjustComponent !== undefined) {
+      this.adjustComponent = this.$options.propData.adjustComponent;
     }
   },
   computed: {
@@ -255,17 +270,22 @@ var commentForm = Vue.component("comment-form", {
     },
     diffId: function() {
       return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
+    },
+    classObject: function() {
+      console.log(this.visible);
+      return this.visible ? "visible" : "invisible";
     }
   },
   methods: {
     hide: function() {
       this.seen = false;
+      this.adjustComponent.seen = false;
     }
   },
   template: `
     <tr v-if="seen">
       <td colspan="2">
-        <form :id="formId" class="edit-comment" :action="formAction" method="post">
+        <form :id="formId" class="edit-comment" :action="formAction" method="post" :class="classObject">
           <div class="card">
             <div class="card-header">Comment</div>
             <div class="card-body">
@@ -369,7 +389,6 @@ export default {
   },
   created() {
     EventBus.$on('show-comment-form', this.showCommentForm);
-    EventBus.$on('hide-comment-form', this.hideCommentForm);
     this.currentChange = location.hash.replace(/^#/, '');
   },
   methods: {
@@ -380,20 +399,25 @@ export default {
       this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
 
       var trs = (side == 'l' ? this.leftTrs : this.rightTrs);
+      var anotherTrs = (side == 'l' ? this.rightTrs : this.leftTrs);
       var index = trs.findIndex(tr => tr.line == codeLine);
 
       var CommentForm = Vue.component('comment-form');
+      // 高さを揃えるため、挿入した側と逆に同じ要素を非表示で挿入する
+      var instanceTmp = new CommentForm({
+        propData: {
+          visible: false
+        }
+      }).$mount();
+      anotherTrs[index].$el.parentNode.insertBefore(instanceTmp.$el, anotherTrs[index].$el.nextSibling);
+
       var instance = new CommentForm({
         propData: {
-          line: parseInt(codeLine)
+          line: parseInt(codeLine),
+          adjustComponent: instanceTmp
         }
       }).$mount();
       trs[index].$el.parentNode.insertBefore(instance.$el, trs[index].$el.nextSibling);
-    },
-
-    // コメントフォームを閉じる
-    hideCommentForm(codeLine, trIndex) {
-      alert("hideCommentForm: " + codeLine + ", " + trIndex);
     },
 
     // 次の変更箇所の行へ進む
