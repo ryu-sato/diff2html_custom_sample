@@ -7,7 +7,7 @@
         <button id="prev" class="btn btn-secondary" @click="prevChange">Prev</button>
       </div>
     </div>
-    <component :is="compiled"><template slot-scope="diffDetailPageProps"></template></component>
+    <component :is="compiled"></component>
   </div>
 </template>
 
@@ -58,7 +58,7 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}">
+    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}" type="{{type}}">
       <td class="{{lineClass}} {{type}}">
         {{{lineNumber}}}
       </td>
@@ -187,6 +187,7 @@ var DiffTr = Vue.component("diff-tr", {
   props: {
     line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
     side: String,
+    type: "",
     currentChange: String
   },
   computed: {
@@ -202,6 +203,12 @@ var DiffTr = Vue.component("diff-tr", {
       this.$parent.$parent.$parent.$data.leftTrs.push(this);
     } else if (this.side == 'r') {
       this.$parent.$parent.$parent.$data.rightTrs.push(this);
+    }
+  },
+  methods: {
+    isChanged: function() {
+      var typeClasses = this.type.split(' ');
+      return typeClasses.indexOf('d2h-ins') != -1 || typeClasses.indexOf('d2h-change') != -1;
     }
   },
   template: '<tr :class="classObject"><slot :side="side"></slot></tr>'
@@ -271,29 +278,27 @@ export default {
       alert("hideCommentForm: " + codeLine + ", " + trIndex);
     },
     nextChange() {
-      this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
-      this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
-
-      var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
-      var line = (this.currentChange.slice(2));
-      var index = trs.findIndex(tr => tr.line == line);
-      // [TODO] 変更がある行の次を選択する
-      var nextIndex = trs.findIndex(tr => (tr.line != "" && tr.line == parseInt(line) + 1));
-      if (nextIndex != -1) {
-        this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
-        location.href = '#' + trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
-        this.tables.forEach(e => e.currentChange = this.currentChange);
-      }
+      this.changeCursor(1);
     },
     prevChange() {
+      this.changeCursor(-1);
+    },
+    changeCursor(direction) {
+      if (!(direction > 0 || direction < 0)) {
+        console.warn("changedCursor() returned. direction is invalid: " + direction);
+        return;
+      }
       this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
       this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
 
       var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
       var line = (this.currentChange.slice(2));
       var index = trs.findIndex(tr => tr.line == line);
-      // [TODO] 変更がある前の次を選択する
-      var nextIndex = trs.findIndex(tr => (tr.line != "" && tr.line == parseInt(line) - 1));
+      if (direction > 0) {
+        var nextIndex = trs.findIndex(tr => (tr.line >= parseInt(line) + 1 && tr.isChanged()));
+      } else if (direction < 0) {
+        var nextIndex = trs.reverse().findIndex(tr => (tr.line <= parseInt(line) - 1 && tr.isChanged()));
+      }
       if (nextIndex != -1) {
         this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
         location.href = '#' + trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
