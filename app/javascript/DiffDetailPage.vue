@@ -92,12 +92,13 @@ var EventBus = new Vue();
  */
 var AddBtn = Vue.component("add-btn", {
   props: {
+    side: "",
     line: Number
   },
   template: '<button class="btn dcs-add-comment" @click="showCommentForm">&#43;</button>',
   methods: {
     showCommentForm: function() {
-      EventBus.$emit('show-comment-form', this.line, -1);
+      EventBus.$emit('show-comment-form', this.side, this.line);
     }
   }
 });
@@ -115,9 +116,6 @@ var CodeTD = Vue.component("code-td", {
       btnSeen: false
     };
   },
-  components: {
-    AddBtn
-  },
   computed: {
     anchorId: function() {
       return this.side + "_" + this.line;
@@ -129,7 +127,7 @@ var CodeTD = Vue.component("code-td", {
   template:
     '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
       '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
-      '<add-btn refs="addBtn" v-if="btnSeen" :line="parseInt(line)"></add-btn>' +
+      '<add-btn refs="addBtn" v-if="btnSeen" :side="side" :line="parseInt(line)"></add-btn>' +
       '<slot></slot>' +
       '</td>',
   methods: {
@@ -148,29 +146,54 @@ var CodeTD = Vue.component("code-td", {
 /**
  * コメント挿入フォーム
  */
-var CmtForm = Vue.component("comment-form", {
+var commentForm = Vue.component("comment-form", {
   props: {
     commentId: Number,
     line: Number,
-    diffId: Number,
-    content: String,
+    content: String
+  },
+  data() {
+    return {
+      seen: true
+    };
+  },
+  computed: {
+    formId: function() {
+      // [TODO] 必要なければ削除する
+      return `edit-comment-${this.line}`;
+    },
+    formAction: function() {
+      if (this.commentId > 0) {
+        return `/comments/${this.commentId}`;
+      } else {
+        return '/comments/';
+      }
+    },
+    diffId: function() {
+      return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
+    }
+  },
+  methods: {
+    destroyForm: function() {
+      this.$delete(this);
+    }
   },
   template: `
     <tr>
       <td colspan="2">
-        <form id={"edit-comment-" + this.line} class="edit-comment" action={"/comments/" + this.commentId} method="post">
+        <form :id="formId" class="edit-comment" :action="formAction" method="post" v-if="seen">
           <div class="card">
             <div class="card-header">Comment</div>
             <div class="card-body">
               <div class="form-group">
                 <input type="hidden" name="_method" value="patch" />
-                <input type="hidden" name="comment[line]" value={this.line} />
-                <input type="hidden" name="comment[diff_id]" value={this.diffId} />
+                <input type="hidden" name="comment[line]" :value="line" />
+                <input type="hidden" name="comment[diff_id]" :value="diffId" />
                 <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">
-                  {this.content}
+                  {{content}}
                 </textarea>
-                <button class="btn btn-outline-secondary mr-2">Cancel</button>
-                <input type="submit" class="btn btn-success" value="Update" />
+                <button class="btn btn-outline-secondary mr-2" v-on:submit.prevent="destroyForm">Cancel</button>
+                <input type="submit" class="btn btn-success" value="Commit" />
               </div>
             </div>
           </div>
@@ -262,18 +285,28 @@ export default {
     }, 500);
   },
   created() {
-    console.log('created');
     EventBus.$on('show-comment-form', this.showCommentForm);
     EventBus.$on('hide-comment-form', this.hideCommentForm);
     this.currentChange = location.hash.replace(/^#/, '');
   },
-  updated: function() {
-    console.log("updated");
-  },
   methods: {
     // コメントフォームを表示する
-    showCommentForm(codeLine, trIndex) {
-      alert("showCommentForm: " + codeLine + ", " + trIndex);
+    showCommentForm(side, codeLine) {
+      // [TODO] 毎回ソートしなくてもよい方法に変更する
+      this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
+      this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
+
+      var trs = (side == 'l' ? this.leftTrs : this.rightTrs);
+      var index = trs.findIndex(tr => tr.line == codeLine);
+
+      var CommentForm = Vue.component('comment-form');
+      var instance = new CommentForm({
+        propData: {
+          line: codeLine
+        }
+      }).$mount();
+      trs[index].$el.parentNode.insertBefore(instance.$el, trs[index].$el.nextSibling);
+      alert("showCommentForm: " + side + ", " + codeLine);
     },
 
     // コメントフォームを閉じる
@@ -295,9 +328,11 @@ export default {
     // カーソルが当たっていない場合は、指定した方向から開始して初めて見つかった箇所にカーソルを当てる。
     changeCursor(direction) {
       if (!(direction > 0 || direction < 0)) {
-        console.warn("changedCursor() returned. direction is invalid: " + direction);
+        console.warn(`changedCursor() returned. "direction" should be less than zero or grater than zero.`);
+        console.debug(`"direction" = ${direction}`);
         return;
       }
+      // [TODO] 毎回ソートしなくてもよい方法に変更する
       this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
       this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
 
