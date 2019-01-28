@@ -59,9 +59,9 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}" type="{{type}}">
+    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}" type="{{type}}" data-toggle="collapse" data-target=".comment{{lineNumber}}" aria-expanded="false" aria-controls="comment{{lineNumber}} commentSpan{{lineNumber}}">
       <td class="{{lineClass}} {{type}}">
-        {{{lineNumber}}}
+        <has-comments :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}"></has-comments><span>{{{lineNumber}}}</span>
       </td>
       <code-td :side="slotProps.side" line="{{lineNumber}}" class="{{type}}">
         <div class="{{contentClass}} {{type}}">
@@ -74,7 +74,8 @@ var rawTemplates = {
         </div>
       </code-td>
     </diff-tr>
-    <comment-list line="{{lineNumber}}"></comment-list>
+    <comment-list :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}"></comment-list>
+    <comment-list-span :side="slotProps.side" :comments="slotProps.commentsOtherSide" line="{{lineNumber}}"></comment-list-span>
   */
   }
     .toString()
@@ -145,6 +146,32 @@ var CodeTD = Vue.component("code-td", {
   }
 });
 
+
+/**
+ * コメント有無
+ */
+Vue.component("has-comments", {
+  props: {
+    side: '',
+    line: "",
+    comments: null
+  },
+  data() {
+    return {
+      seen: false
+    };
+  },
+  template: `
+    <span v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" @click="popup">★</span>
+  `,
+  methods: {
+    popup: function() {
+      var msg = this.comments.map(c => c.content).join("\n");
+      alert(msg);
+    }
+  }
+});
+
 /**
  * コメント要素
  */
@@ -174,36 +201,64 @@ Vue.component("comment", {
 });
 
 /**
+ * コメントリスト(高さ調節用)
+ */
+Vue.component("comment-list-span", {
+  props: {
+    side: "",
+    line: "",
+    comments: Array
+  },
+  data() {
+    return {
+    }
+  },
+  computed: {
+    id: function() {
+      return `commentSpan${this.line}`;
+    },
+    classObject: function() {
+      return `collapse comment${this.line}`;
+    }
+  },
+  template: `
+    <tr :class="classObject" :id="id">
+      <td colspan="2" class="">
+        <comment v-for="comment in comments" :comment="comment" :key="comment.id" class="invisible">
+        </comment>
+      </td>
+    </tr>
+  `
+});
+
+/**
  * コメントリスト
  */
 Vue.component("comment-list", {
   props: {
-    line: ""
+    side: "",
+    line: "",
+    comments: Array
   },
   data() {
     return {
-      comments: [],
-      hasComments: false,
-    }
-  },
-  created() {
-    // 有効な行数を持っていればコメントを取得する
-    if (parseInt(this.line) > 0) {
-      return axios.get(`${this.baseUrl}/comments.json?line=${this.line}`)
-        .then((res) => {
-          this.comments = res.data;
-          this.hasComments = (res.data.length > 0);
-          this.$emit('GET_AJAX_COMPLETE');
-      });
     }
   },
   computed: {
-    baseUrl: function() {
-      return location.pathname;
+    id: function() {
+      return `commentSpan${this.index()}`;
+    },
+    classObject: function() {
+      return `collapse comment${this.index()}`;
+    }
+  },
+  methods: {
+    index: function() {
+      return this.$parent.$children.indexOf(this);
     }
   },
   template: `
-    <tr v-if="hasComments">
+    <tr v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" :class="classObject" :id="id">
       <td colspan="2">
         <comment v-for="comment in comments" :comment="comment" :key="comment.id">
         </comment>
@@ -272,7 +327,6 @@ var commentForm = Vue.component("comment-form", {
       return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
     },
     classObject: function() {
-      console.log(this.visible);
       return this.visible ? "visible" : "invisible";
     }
   },
@@ -348,13 +402,28 @@ var DiffTable = Vue.component("diff-table", {
   },
   data() {
     return {
-      currentChange: this.$parent.$parent.$data.currentChange
+      currentChange: this.$parent.$parent.$data.currentChange,
+      comments: [],
+      commentsOtherSide: []  // 高さ調節のために逆側のコメントを保持しておく
     };
   },
   created() {
     this.$parent.$parent.$data.tables.push(this);
+
+    // 有効な行数を持っていればコメントを取得する
+    return axios.get(`${this.baseUrl}/comments.json`)
+      .then((res) => {
+        this.comments = res.data.filter(c => (this.side == 'l' && c.for_from) || (this.side == 'r' && !c.for_from));
+        this.commentsOtherSide = res.data.filter(c => (this.side == 'l' && !c.for_from) || (this.side == 'r' && c.for_from))
+        this.$emit('GET_AJAX_COMPLETE');
+    });
   },
-  template: '<table><slot :side="side" :current-change="currentChange"></slot></table>'
+  computed: {
+    baseUrl: function() {
+      return location.pathname;
+    }
+  },
+  template: '<table><slot :comments="comments" :comments-other-side="commentsOtherSide" :side="side" :current-change="currentChange"></slot></table>'
 })
 
 /**

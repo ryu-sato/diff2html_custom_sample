@@ -23,6 +23,7 @@ import "popper.js/dist/popper";
 
 // use bootstrap
 import 'bootstrap/dist/js/bootstrap';
+import './bootstrap_init';
 
 // use diff2html
 import 'diff2html';

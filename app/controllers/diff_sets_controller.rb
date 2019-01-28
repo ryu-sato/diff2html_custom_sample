@@ -69,6 +69,6 @@ class DiffSetsController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def diff_set_params
-      params.fetch(:diff_set, {})
+      params.fetch(:diff_set, {}).permit(:diff_ids, :content)
     end
 end

@@ -10,6 +10,9 @@ import App from '../app.vue'
 
 document.addEventListener('DOMContentLoaded', () => {
   const diffString = document.getElementById('diff_string').innerText;
+  const modal = Vue.component('comment-modal', {
+    template: '#modal-template'
+  })
   const app = new Vue({
     el: '#cd-diff2html',
     data: function() {
