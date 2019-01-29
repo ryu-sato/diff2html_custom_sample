@@ -103,7 +103,8 @@ Vue.component("add-btn", {
   template: '<button class="btn dcs-add-comment" @click="showCommentForm">&#43;</button>',
   methods: {
     showCommentForm: function() {
-      EventBus.$emit('show-comment-form', this.side, this.line);
+      let comment = { id: null, line: this.line, for_from: this.side == 'l', content: "" };
+      EventBus.$emit('show-comment-form', comment);
     }
   }
 });
@@ -174,9 +175,9 @@ Vue.component("has-comments", {
       return this.comments.filter(c => c.line == parseInt(this.line));
     },
     popup: function() {
-      console.log("popup");
-      let msg = this.lineComments().map(c => c.content).join("\n");
-      alert(msg);
+      // [TODO] 複数のコメントをどうするか検討する
+      let comment = this.lineComments()[0];
+      EventBus.$emit("show-comment-form", comment, true);
     }
   }
 });
@@ -186,25 +187,12 @@ Vue.component("has-comments", {
  */
 Vue.component("comment", {
   props: {
-    comment: {
-      id: 0,
-      line: -1,
-      content: ""
-    }
-  },
-  computed: {
-    href: function() {
-      return `/comments/${this.comment.id}`;
-    }
+    comment: {}
   },
   template: `
-    <div :data-comment-content="comment.content" :data-comment-id="comment.id" :data-comment-line="comment.line" class="card m-2">
-      <div class="card-body">
-        <pre>{{comment.content}}</pre>
-        <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
-        <button class="btn btn-sm btn-outline-dark mr-2">Edit</button>
-        <a :href="href" rel="nofollow" data-method="delete" data-confirm="Are you sure?"><button class="btn btn-sm btn-outline-danger">Delete</button></a>
-      </div>
+    <div>
+      <pre>{{comment.content}}</pre>
+      <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
     </div>
   `
 });
@@ -443,21 +431,14 @@ var DiffTable = Vue.component("diff-table", {
 /**
  * コメント入力フォーム
  */
-Vue.component('comment-input-modal', {
-  data() {
-    return {
-      seen: false,
-      comment: {}
-    };
+Vue.component("comment-form", {
+  props: {
+    comment: {}
   },
   computed: {
-    formId: function() {
-      // [TODO] 必要なければ削除する
-      return `edit-comment-${this.line}`;
-    },
     formAction: function() {
-      if (this.commentId > 0) {
-        return `/comments/${this.commentId}`;
+      if (this.comment.id > 0) {
+        return `/comments/${this.comment.id}`;
       } else {
         return '/comments/';
       }
@@ -469,34 +450,59 @@ Vue.component('comment-input-modal', {
       return {value: 'id'} in this.comment ? this.comment.id > 0 : false;
     }
   },
+  template: `
+    <form class="edit-comment" :action="formAction" method="post">
+      <div class="card">
+        <div class="card-header">Comment</div>
+        <div class="card-body">
+          <div class="form-group">
+            <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
+            <input type="hidden" name="comment[line]" :value="comment.line" />
+            <input type="hidden" name="comment[diff_id]" :value="diffId" />
+            <input type="hidden" name="comment[for_from]" :value="comment.for_from" />
+            <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{comment.content}}</textarea>
+            <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="$emit('cancel')">Cancel</button>
+            <input type="submit" class="btn btn-success" value="Commit" />
+          </div>
+        </div>
+      </div>
+    </form>
+  `
+});
+
+/**
+ * カスタムディレクティブ
+ * コンポーネントの領域外をマウスクリックされたとき用
+ */
+Vue.directive('click-outside', {
+
+})
+
+/**
+ * コメントモーダル
+ */
+Vue.component('comment-input-modal', {
+  data() {
+    return {
+      seen: false,
+      readMode: false,
+      comment: {}
+    };
+  },
   methods: {
     hide: function() {
       this.seen = false;
     }
   },
   template: `
-  <div v-if="seen" @close="seen = false">
+  <div v-if="seen" @close="hide">
     <transition name="modal">
       <div class="modal-mask">
-        <div class="modal-wrapper">
-          <div class="modal-body">
+        <div class="modal-wrapper" @click.self="hide">
+          <div class="modal-body" @click.self="hide">
             <div class="modal-container">
-              <form :id="formId" class="edit-comment" :action="formAction" method="post">
-                <div class="card">
-                  <div class="card-header">Comment</div>
-                  <div class="card-body">
-                    <div class="form-group">
-                      <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
-                      <input type="hidden" name="comment[line]" :value="comment.line" />
-                      <input type="hidden" name="comment[diff_id]" :value="diffId" />
-                      <input type="hidden" name="comment[for_from]" :value="comment.for_from" />
-                      <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{comment.content}}</textarea>
-                      <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="seen = false">Cancel</button>
-                      <input type="submit" class="btn btn-success" value="Commit" />
-                    </div>
-                  </div>
-                </div>
-              </form>
+              <comment v-if="readMode" :comment="comment"></comment>
+              <comment-form v-else="readMode" :comment="comment" v-on:cancel="hide"></comment-form>
             </div>
           </div>
         </div>
@@ -543,9 +549,10 @@ export default {
   },
   methods: {
     // コメントフォームを表示する
-    showCommentForm(side, codeLine) {
+    showCommentForm(comment = {}, readMode = false) {
       this.$refs.modal.seen = true;
-      this.$refs.modal.comment = { id: null, line: codeLine, for_from: side == 'l', content: "" }
+      this.$refs.modal.readMode = readMode;
+      this.$refs.modal.comment = comment;
     },
 
     // 次の変更箇所の行へ進む
