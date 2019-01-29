@@ -444,16 +444,10 @@ var DiffTable = Vue.component("diff-table", {
  * コメント入力フォーム
  */
 Vue.component('comment-input-modal', {
-  props: {
-    commentId: -1,        // フォームが更新用の場合は、更新するコメントモデルのID
-    content: "",          // フォームが更新用の場合は、現在のコメント内容
-    side: "",             // フォームを追加する先のコードが左右のどちらか
-    line: -1              // フォームを追加する先のコードの行番号
-  },
   data() {
     return {
       seen: false,
-      forUpdate: false
+      comment: {}
     };
   },
   computed: {
@@ -470,6 +464,9 @@ Vue.component('comment-input-modal', {
     },
     diffId: function() {
       return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
+    },
+    forUpdate: function() {
+      return {value: 'id'} in this.comment ? this.comment.id > 0 : false;
     }
   },
   methods: {
@@ -490,9 +487,10 @@ Vue.component('comment-input-modal', {
                   <div class="card-body">
                     <div class="form-group">
                       <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
-                      <input type="hidden" name="comment[line]" :value="line" />
+                      <input type="hidden" name="comment[line]" :value="comment.line" />
                       <input type="hidden" name="comment[diff_id]" :value="diffId" />
-                      <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{content}}</textarea>
+                      <input type="hidden" name="comment[for_from]" :value="comment.for_from" />
+                      <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{comment.content}}</textarea>
                       <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="seen = false">Cancel</button>
                       <input type="submit" class="btn btn-success" value="Commit" />
                     </div>
@@ -547,6 +545,7 @@ export default {
     // コメントフォームを表示する
     showCommentForm(side, codeLine) {
       this.$refs.modal.seen = true;
+      this.$refs.modal.comment = { id: null, line: codeLine, for_from: side == 'l', content: "" }
     },
 
     // 次の変更箇所の行へ進む
