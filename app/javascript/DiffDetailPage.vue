@@ -183,185 +183,6 @@ Vue.component("has-comments", {
 });
 
 /**
- * コメント要素
- */
-Vue.component("comment", {
-  props: {
-    comment: {}
-  },
-  template: `
-    <div>
-      <pre>{{comment.content}}</pre>
-      <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
-    </div>
-  `
-});
-
-/**
- * コメントリスト(高さ調節用)
- */
-Vue.component("comment-list-span", {
-  props: {
-    side: "",
-    line: "",
-    comments: Array
-  },
-  data() {
-    return {
-    }
-  },
-  computed: {
-    id: function() {
-      return `commentSpan${this.index()}`;
-    },
-    classObject: function() {
-      return `collapse comment${this.index()}`;
-    }
-  },
-  methods: {
-    index: function() {
-      return this.$parent.$children.indexOf(this);
-    }
-  },
-  template: `
-    <tr :class="classObject" :id="id">
-      <td colspan="2" class="">
-        <comment v-for="comment in comments" :comment="comment" :key="comment.id" class="invisible">
-        </comment>
-      </td>
-    </tr>
-  `
-});
-
-/**
- * コメントリスト
- */
-Vue.component("comment-list", {
-  props: {
-    side: "",
-    line: "",
-    comments: Array
-  },
-  data() {
-    return {
-    }
-  },
-  computed: {
-    id: function() {
-      return `commentSpan${this.index()}`;
-    },
-    classObject: function() {
-      return `collapse comment${this.index()}`;
-    }
-  },
-  methods: {
-    index: function() {
-      return this.$parent.$children.indexOf(this);
-    }
-  },
-  template: `
-    <tr v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" :class="classObject" :id="id">
-      <td colspan="2">
-        <comment v-for="comment in comments" :comment="comment" :key="comment.id">
-        </comment>
-      </td>
-    </tr>
-  `
-});
-
-/**
- * コメント挿入フォーム
- */
-var commentForm = Vue.component("comment-form", {
-  props: {
-    visible: true,        // 高さを揃えるためだけのフォームの場合はfalseにする
-    commentId: -1,        // フォームが更新用の場合は、更新するコメントモデルのID
-    content: "",          // フォームが更新用の場合は、現在のコメント内容
-    side: "",             // フォームを追加する先のコードが左右のどちらか
-    line: -1,             // フォームを追加する先のコードの行番号
-    adjustComponent: null // 高さ調整のために逆再度に設定したコンポーネントのインスタンス
-  },
-  data() {
-    return {
-      seen: true,
-      forUpdate: false
-    };
-  },
-  created() {
-    this.visible = true;
-    this.commentId = -1;
-    this.content = "";
-    this.side = "";
-    this.line = -1;
-    this.adjustComponent = null;
-
-    /* propData を使ってコンポーネントが作成されたら、その値を基にして props を初期化する */
-    if (this.$options.propData.visible !== undefined) {
-      this.visible = this.$options.propData.visible;
-    }
-    if (this.$options.propData.update !== undefined) {
-      this.update = this.$options.propData.update;
-    }
-    if (this.$options.propData.commentId !== undefined && this.$options.propData.commentId > 0) {
-      this.commentId = this.$options.propData.commentId;
-      this.forUpdate = true;
-    }
-    if (this.$options.propData.line !== undefined && this.$options.propData.line > 0) {
-      this.line = this.$options.propData.line;
-    }
-    if (this.$options.propData.adjustComponent !== undefined) {
-      this.adjustComponent = this.$options.propData.adjustComponent;
-    }
-  },
-  computed: {
-    formId: function() {
-      // [TODO] 必要なければ削除する
-      return `edit-comment-${this.line}`;
-    },
-    formAction: function() {
-      if (this.commentId > 0) {
-        return `/comments/${this.commentId}`;
-      } else {
-        return '/comments/';
-      }
-    },
-    diffId: function() {
-      return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
-    },
-    classObject: function() {
-      return this.visible ? "visible" : "invisible";
-    }
-  },
-  methods: {
-    hide: function() {
-      this.seen = false;
-      this.adjustComponent.seen = false;
-    }
-  },
-  template: `
-    <tr v-if="seen">
-      <td colspan="2">
-        <form :id="formId" class="edit-comment" :action="formAction" method="post" :class="classObject">
-          <div class="card">
-            <div class="card-header">Comment</div>
-            <div class="card-body">
-              <div class="form-group">
-                <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
-                <input type="hidden" name="comment[line]" :value="line" />
-                <input type="hidden" name="comment[diff_id]" :value="diffId" />
-                <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{content}}</textarea>
-                <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="hide">Cancel</button>
-                <input type="submit" class="btn btn-success" value="Commit" />
-              </div>
-            </div>
-          </div>
-        </form>
-      </td>
-    </tr>
-  `
-});
-
-/**
  * Diffテーブルの行コンポーネント
  */
 var DiffTr = Vue.component("diff-tr", {
@@ -429,6 +250,21 @@ var DiffTable = Vue.component("diff-table", {
 });
 
 /**
+ * コメント表示
+ */
+Vue.component("comment", {
+  props: {
+    comment: {}
+  },
+  template: `
+    <div>
+      <pre>{{comment.content}}</pre>
+      <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
+    </div>
+  `
+});
+
+/**
  * コメント入力フォーム
  */
 Vue.component("comment-form", {
@@ -469,14 +305,6 @@ Vue.component("comment-form", {
     </form>
   `
 });
-
-/**
- * カスタムディレクティブ
- * コンポーネントの領域外をマウスクリックされたとき用
- */
-Vue.directive('click-outside', {
-
-})
 
 /**
  * コメントモーダル
