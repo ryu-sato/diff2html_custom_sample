@@ -339,12 +339,14 @@ Vue.component('comment-input-modal', {
   template: `
     <div v-if="seen" @close="hide">
       <transition name="modal">
-        <div class="modal-mask">
-          <div class="modal-wrapper" @click.self="hide">
-            <div class="modal-body" @click.self="hide">
-              <div class="modal-container">
-                <comment v-if="readMode" :comment="comment" v-on:change-edit-mode="changeEditMode"></comment>
-                <comment-form v-else="readMode" :comment="comment" v-on:cancel="hide"></comment-form>
+        <div class="dcs-modal-mask">
+          <div class="dcs-modal-wrapper" @click.self="hide">
+            <div class="dcs-modal-body container-fluid" @click.self="hide">
+              <div class="row">
+                <div class="dcs-modal-container col-6">
+                  <comment v-if="readMode" :comment="comment" v-on:change-edit-mode="changeEditMode"></comment>
+                  <comment-form v-else="readMode" :comment="comment" v-on:cancel="hide"></comment-form>
+                </div>
               </div>
             </div>
           </div>
