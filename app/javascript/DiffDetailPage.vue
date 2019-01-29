@@ -226,18 +226,17 @@ var DiffTable = Vue.component("diff-table", {
   data() {
     return {
       currentChange: this.$parent.$parent.$data.currentChange,
-      comments: [],
-      commentsOtherSide: []  // 高さ調節のために逆側のコメントを保持しておく
+      comments: []
     };
   },
   created() {
     this.$parent.$parent.$data.tables.push(this);
 
     // 有効な行数を持っていればコメントを取得する
-    return axios.get(`${this.baseUrl}/comments.json`)
+    let for_from = this.side == 'l';
+    return axios.get(`${this.baseUrl}/comments.json?for_from=${for_from}`)
       .then((res) => {
-        this.comments = res.data.filter(c => (this.side == 'l' && c.for_from) || (this.side == 'r' && !c.for_from));
-        this.commentsOtherSide = res.data.filter(c => (this.side == 'l' && !c.for_from) || (this.side == 'r' && c.for_from))
+        this.comments = res.data;
         this.$emit('GET_AJAX_COMPLETE');
     });
   },
@@ -246,7 +245,7 @@ var DiffTable = Vue.component("diff-table", {
       return location.pathname;
     }
   },
-  template: '<table><slot :comments="comments" :comments-other-side="commentsOtherSide" :side="side" :current-change="currentChange"></slot></table>'
+  template: '<table><slot :comments="comments" :side="side" :current-change="currentChange"></slot></table>'
 });
 
 /**
@@ -306,8 +305,8 @@ Vue.component("comment-form", {
             <input type="hidden" name="comment[diff_id]" :value="diffId" />
             <input type="hidden" name="comment[for_from]" :value="comment.for_from" />
             <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{comment.content}}</textarea>
-            <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="$emit('cancel')">Cancel</button>
-            <input type="submit" class="btn btn-success" value="Commit" />
+            <button class="btn btn-sm btn-outline-secondary mr-2" v-on:click.prevent.self="$emit('cancel')">Cancel</button>
+            <input type="submit" class="btn btn-sm btn-success" value="Commit" />
           </div>
         </div>
       </div>
