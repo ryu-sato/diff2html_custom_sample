@@ -8,6 +8,7 @@
       </div>
     </div>
     <component :is="compiled"></component>
+    <comment-input-modal ref="modal"></comment-input-modal>
   </div>
 </template>
 
@@ -132,7 +133,7 @@ var CodeTD = Vue.component("code-td", {
     '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
       '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
       '<slot :btn-seen="btnSeen" :side="side" :line="parseInt(this.line)">' +
-      '<slot></slot>' +
+      '</slot>' +
     '</td>',
   methods: {
     mouseEnter: function() {
@@ -164,7 +165,8 @@ Vue.component("has-comments", {
   },
   template: `
     <span>
-      <span v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" @click="popup">★</span>
+      <span v-if="this.lineComments().length > 0" @click="popup">★</span>
+      <slot></slot>
     </span>
   `,
   methods: {
@@ -436,7 +438,75 @@ var DiffTable = Vue.component("diff-table", {
     }
   },
   template: '<table><slot :comments="comments" :comments-other-side="commentsOtherSide" :side="side" :current-change="currentChange"></slot></table>'
-})
+});
+
+/**
+ * コメント入力フォーム
+ */
+Vue.component('comment-input-modal', {
+  props: {
+    commentId: -1,        // フォームが更新用の場合は、更新するコメントモデルのID
+    content: "",          // フォームが更新用の場合は、現在のコメント内容
+    side: "",             // フォームを追加する先のコードが左右のどちらか
+    line: -1              // フォームを追加する先のコードの行番号
+  },
+  data() {
+    return {
+      seen: false,
+      forUpdate: false
+    };
+  },
+  computed: {
+    formId: function() {
+      // [TODO] 必要なければ削除する
+      return `edit-comment-${this.line}`;
+    },
+    formAction: function() {
+      if (this.commentId > 0) {
+        return `/comments/${this.commentId}`;
+      } else {
+        return '/comments/';
+      }
+    },
+    diffId: function() {
+      return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
+    }
+  },
+  methods: {
+    hide: function() {
+      this.seen = false;
+    }
+  },
+  template: `
+  <div v-if="seen" @close="seen = false">
+    <transition name="modal">
+      <div class="modal-mask">
+        <div class="modal-wrapper">
+          <div class="modal-body">
+            <div class="modal-container">
+              <form :id="formId" class="edit-comment" :action="formAction" method="post">
+                <div class="card">
+                  <div class="card-header">Comment</div>
+                  <div class="card-body">
+                    <div class="form-group">
+                      <input type="hidden" name="_method" value="patch" v-if="forUpdate" />
+                      <input type="hidden" name="comment[line]" :value="line" />
+                      <input type="hidden" name="comment[diff_id]" :value="diffId" />
+                      <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{content}}</textarea>
+                      <button class="btn btn-outline-secondary mr-2" v-on:click.prevent.self="seen = false">Cancel</button>
+                      <input type="submit" class="btn btn-success" value="Commit" />
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </div>
+  `
+});
 
 /**
  * 全行Diff用コンポーネント
@@ -449,7 +519,8 @@ export default {
       currentChange: "",
       tables: [],
       leftTrs: [],
-      rightTrs: []
+      rightTrs: [],
+      modalSeen: false
     };
   },
   mounted() {
@@ -475,30 +546,7 @@ export default {
   methods: {
     // コメントフォームを表示する
     showCommentForm(side, codeLine) {
-      // [TODO] 毎回ソートしなくてもよい方法に変更する
-      this.leftTrs = this.leftTrs.sort((a, b) => { return a.line - b.line; });
-      this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
-
-      var trs = (side == 'l' ? this.leftTrs : this.rightTrs);
-      var anotherTrs = (side == 'l' ? this.rightTrs : this.leftTrs);
-      var index = trs.findIndex(tr => tr.line == codeLine);
-
-      var CommentForm = Vue.component('comment-form');
-      // 高さを揃えるため、挿入した側と逆に同じ要素を非表示で挿入する
-      var instanceTmp = new CommentForm({
-        propData: {
-          visible: false
-        }
-      }).$mount();
-      anotherTrs[index].$el.parentNode.insertBefore(instanceTmp.$el, anotherTrs[index].$el.nextSibling);
-
-      var instance = new CommentForm({
-        propData: {
-          line: parseInt(codeLine),
-          adjustComponent: instanceTmp
-        }
-      }).$mount();
-      trs[index].$el.parentNode.insertBefore(instance.$el, trs[index].$el.nextSibling);
+      this.$refs.modal.seen = true;
     },
 
     // 次の変更箇所の行へ進む
