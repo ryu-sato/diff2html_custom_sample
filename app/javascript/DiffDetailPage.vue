@@ -17,38 +17,38 @@ import { Diff2Html } from "diff2html";
 import "diff2html/dist/diff2html.min.css";
 import axios from 'axios';
 
-var diff_id = location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
-var rawTemplates = {
+// diff2html 用テンプレート
+let rawTemplates = {
   "side-by-side-file-diff": function() {
     /*
     <div id="{{fileHtmlId}}" class="d2h-file-wrapper" data-lang="{{file.language}}">
-        <div class="d2h-file-header">
-            {{{filePath}}}
+      <div class="d2h-file-header">
+        {{{filePath}}}
+      </div>
+      <div class="d2h-files-diff">
+        <div class="d2h-file-side-diff">
+          <div class="d2h-code-wrapper">
+            <diff-table side="l" class="d2h-diff-table">
+            <template slot-scope="slotProps">
+              <tbody class="d2h-diff-tbody">
+              {{{diffs.left}}}
+              </tbody>
+            </template>
+            </diff-table>
+          </div>
         </div>
-        <div class="d2h-files-diff">
-            <div class="d2h-file-side-diff">
-                <div class="d2h-code-wrapper">
-                    <diff-table side="l" class="d2h-diff-table">
-                    <template slot-scope="slotProps">
-                        <tbody class="d2h-diff-tbody">
-                        {{{diffs.left}}}
-                        </tbody>
-                    </template>
-                    </diff-table>
-                </div>
-            </div>
-            <div class="d2h-file-side-diff">
-                <div class="d2h-code-wrapper">
-                    <diff-table side="r" class="d2h-diff-table">
-                    <template slot-scope="slotProps">
-                        <tbody class="d2h-diff-tbody">
-                        {{{diffs.right}}}
-                        </tbody>
-                    </template>
-                    </diff-table>
-                </div>
-            </div>
+        <div class="d2h-file-side-diff">
+          <div class="d2h-code-wrapper">
+            <diff-table side="r" class="d2h-diff-table">
+            <template slot-scope="slotProps">
+              <tbody class="d2h-diff-tbody">
+              {{{diffs.right}}}
+              </tbody>
+            </template>
+            </diff-table>
+          </div>
         </div>
+      </div>
     </div>
     */
   }
@@ -59,23 +59,24 @@ var rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr :side="slotProps.side" :current-change="slotProps.currentChange" line="{{lineNumber}}" type="{{type}}" data-toggle="collapse" data-target=".comment{{lineNumber}}" aria-expanded="false" aria-controls="comment{{lineNumber}} commentSpan{{lineNumber}}">
+    <diff-tr :side="slotProps.side" line="{{lineNumber}}" type="{{type}}">
       <td class="{{lineClass}} {{type}}">
-        <has-comments :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}"></has-comments><span>{{{lineNumber}}}</span>
+        <has-comments :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}">{{{lineNumber}}}</has-comments>
       </td>
       <code-td :side="slotProps.side" line="{{lineNumber}}" class="{{type}}">
-        <div class="{{contentClass}} {{type}}">
-          {{#prefix}}
-              <span class="d2h-code-line-prefix">{{{prefix}}}</span>
-          {{/prefix}}
-          {{#content}}
-              <span class="d2h-code-line-ctn">{{{content}}}</span>
-          {{/content}}
-        </div>
+        <template slot-scope="codeTrProps">
+          <div class="{{contentClass}} {{type}} position-relative">
+            {{#prefix}}
+                <span class="d2h-code-line-prefix">{{{prefix}}}</span>
+            {{/prefix}}
+            {{#content}}
+                <span class="d2h-code-line-ctn">{{{content}}}</span>
+            {{/content}}
+            <add-btn refs="addBtn" v-if="codeTrProps.btnSeen" :side="codeTrProps.side" :line="codeTrProps.line"></add-btn>
+          </div>
+        </template>
       </code-td>
     </diff-tr>
-    <comment-list :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}"></comment-list>
-    <comment-list-span :side="slotProps.side" :comments="slotProps.commentsOtherSide" line="{{lineNumber}}"></comment-list-span>
   */
   }
     .toString()
@@ -88,12 +89,12 @@ var rawTemplates = {
 /**
  * イベントを通知させるための空コンポーネント
  */
-var EventBus = new Vue();
+let EventBus = new Vue();
 
 /**
  * コメント追加ボタン用コンポーネント
  */
-var AddBtn = Vue.component("add-btn", {
+Vue.component("add-btn", {
   props: {
     side: "",
     line: Number
@@ -111,8 +112,8 @@ var AddBtn = Vue.component("add-btn", {
  */
 var CodeTD = Vue.component("code-td", {
   props: {
-    line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
-    side: String
+    line: "",  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    side: ""
   },
   data() {
     return {
@@ -130,9 +131,9 @@ var CodeTD = Vue.component("code-td", {
   template:
     '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
       '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
-      '<add-btn refs="addBtn" v-if="btnSeen" :side="side" :line="parseInt(line)"></add-btn>' +
+      '<slot :btn-seen="btnSeen" :side="side" :line="parseInt(this.line)">' +
       '<slot></slot>' +
-      '</td>',
+    '</td>',
   methods: {
     mouseEnter: function() {
       if (this.line == "") {
@@ -154,7 +155,7 @@ Vue.component("has-comments", {
   props: {
     side: '',
     line: "",
-    comments: null
+    comments: Array
   },
   data() {
     return {
@@ -162,11 +163,17 @@ Vue.component("has-comments", {
     };
   },
   template: `
-    <span v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" @click="popup">★</span>
+    <span>
+      <span v-if="comments.filter(c => c.line == parseInt(this.line)).length > 0" @click="popup">★</span>
+    </span>
   `,
   methods: {
+    lineComments: function() {
+      return this.comments.filter(c => c.line_num == parseInt(this.line));
+    },
     popup: function() {
-      var msg = this.comments.map(c => c.content).join("\n");
+      console.log("popup");
+      let msg = this.lineComments().map(c => c.content).join("\n");
       alert(msg);
     }
   }
@@ -215,10 +222,15 @@ Vue.component("comment-list-span", {
   },
   computed: {
     id: function() {
-      return `commentSpan${this.line}`;
+      return `commentSpan${this.index()}`;
     },
     classObject: function() {
-      return `collapse comment${this.line}`;
+      return `collapse comment${this.index()}`;
+    }
+  },
+  methods: {
+    index: function() {
+      return this.$parent.$children.indexOf(this);
     }
   },
   template: `
