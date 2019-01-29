@@ -265,7 +265,7 @@ Vue.component("comment", {
     <div>
       <pre>{{comment.content}}</pre>
       <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
-      <button class="btn btn-sm btn-outline-dark mr-2">Edit</button>
+      <button class="btn btn-sm btn-outline-dark mr-2" v-on:click.prevent.self="$emit('change-edit-mode', comment)">Edit</button>
       <a :href="href" rel="nofollow" data-method="delete" data-confirm="本当に消しますか？">
         <button class="btn btn-sm btn-outline-danger">Delete</button>
       </a>
@@ -292,7 +292,7 @@ Vue.component("comment-form", {
       return location.pathname.replace(/\/diffs\/(\d+)[^\d]*/, "$1");
     },
     forUpdate: function() {
-      return {value: 'id'} in this.comment ? this.comment.id > 0 : false;
+      return this.comment.id > 0;
     }
   },
   template: `
@@ -329,23 +329,29 @@ Vue.component('comment-input-modal', {
   methods: {
     hide: function() {
       this.seen = false;
+    },
+    changeEditMode: function(comment) {
+      console.log("changeEditMode");
+      console.log(comment);
+      this.comment = comment;
+      this.readMode = false;
     }
   },
   template: `
-  <div v-if="seen" @close="hide">
-    <transition name="modal">
-      <div class="modal-mask">
-        <div class="modal-wrapper" @click.self="hide">
-          <div class="modal-body" @click.self="hide">
-            <div class="modal-container">
-              <comment v-if="readMode" :comment="comment"></comment>
-              <comment-form v-else="readMode" :comment="comment" v-on:cancel="hide"></comment-form>
+    <div v-if="seen" @close="hide">
+      <transition name="modal">
+        <div class="modal-mask">
+          <div class="modal-wrapper" @click.self="hide">
+            <div class="modal-body" @click.self="hide">
+              <div class="modal-container">
+                <comment v-if="readMode" :comment="comment" v-on:change-edit-mode="changeEditMode"></comment>
+                <comment-form v-else="readMode" :comment="comment" v-on:cancel="hide"></comment-form>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
-  </div>
+      </transition>
+    </div>
   `
 });
 
