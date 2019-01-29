@@ -256,10 +256,19 @@ Vue.component("comment", {
   props: {
     comment: {}
   },
+  computed: {
+    href: function() {
+      return `/comments/${this.comment.id}`;
+    }
+  },
   template: `
     <div>
       <pre>{{comment.content}}</pre>
       <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
+      <button class="btn btn-sm btn-outline-dark mr-2">Edit</button>
+      <a :href="href" rel="nofollow" data-method="delete" data-confirm="本当に消しますか？">
+        <button class="btn btn-sm btn-outline-danger">Delete</button>
+      </a>
     </div>
   `
 });
