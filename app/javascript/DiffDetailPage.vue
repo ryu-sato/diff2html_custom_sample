@@ -171,7 +171,8 @@ Vue.component("has-comments", {
   `,
   methods: {
     lineComments: function() {
-      return this.comments.filter(c => c.line_num == parseInt(this.line));
+      console.log('line: ' + this.line + ', ' + this.comments.filter(c => c.line == parseInt(this.line)));
+      return this.comments.filter(c => c.line == parseInt(this.line));
     },
     popup: function() {
       console.log("popup");
