@@ -114,7 +114,7 @@ Vue.component("add-btn", {
  */
 var CodeTD = Vue.component("code-td", {
   props: {
-    line: "",  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    line: "",  // Numberにすると空文字列の場合に型エラーとなるので一旦文字列で受け取っている
     side: ""
   },
   data() {
@@ -148,7 +148,6 @@ var CodeTD = Vue.component("code-td", {
     }
   }
 });
-
 
 /**
  * コメント有無
@@ -187,24 +186,24 @@ Vue.component("has-comments", {
  */
 var DiffTr = Vue.component("diff-tr", {
   props: {
-    line: String,  // Numberにすると空文字列の場合にエラーとなるので一旦文字列で受け取っている
+    line: String,  // Numberにすると空文字列の場合に型エラーとなるので一旦文字列で受け取っている
     side: String,
     type: "",
-    currentChange: String
+    selectedLineName: String
   },
   computed: {
     classObject: function() {
       var name = this.side + "_" + this.line
       return {
-        'dcs-active-line': this.currentChange == name
+        'dcs-active-line': this.selectedLineName == name
       };
     }
   },
   created() {
     if (this.side == 'l') {
-      this.$parent.$parent.$parent.$data.leftTrs.push(this);
+      this.$parent.$parent.$parent.$data.leftTrs.push(this);  // [TODO] $parent を使わないようにする
     } else if (this.side == 'r') {
-      this.$parent.$parent.$parent.$data.rightTrs.push(this);
+      this.$parent.$parent.$parent.$data.rightTrs.push(this); // [TODO] $parent を使わないようにする
     }
   },
   methods: {
@@ -213,7 +212,7 @@ var DiffTr = Vue.component("diff-tr", {
       return typeClasses.indexOf('d2h-ins') != -1 || typeClasses.indexOf('d2h-change') != -1;
     }
   },
-  template: '<tr :class="classObject"><slot :side="side"></slot></tr>'
+  template: '<tr :class="classObject"><slot :side="side" :selected-line-name="selectedLineName"></slot></tr>'
 })
 
 /**
@@ -225,14 +224,14 @@ var DiffTable = Vue.component("diff-table", {
   },
   data() {
     return {
-      currentChange: this.$parent.$parent.$data.currentChange,
+      selectedLineName: this.$parent.$parent.$data.selectedLineName,  // [TODO] $parent を使わないで済む方法に変更する
       comments: []
     };
   },
   created() {
     this.$parent.$parent.$data.tables.push(this);
 
-    // 有効な行数を持っていればコメントを取得する
+    // ファイルに付与されたコメント一覧を取得する(コメントはside毎につくのでパラメータで渡して、一覧を絞る)
     let for_from = this.side == 'l';
     return axios.get(`${this.baseUrl}/comments.json?for_from=${for_from}`)
       .then((res) => {
@@ -245,7 +244,7 @@ var DiffTable = Vue.component("diff-table", {
       return location.pathname;
     }
   },
-  template: '<table><slot :comments="comments" :side="side" :current-change="currentChange"></slot></table>'
+  template: '<table><slot :comments="comments" :side="side" :selected-line-name="selectedLineName"></slot></table>'
 });
 
 /**
@@ -281,7 +280,7 @@ Vue.component("comment-form", {
   },
   computed: {
     formAction: function() {
-      if (this.comment.id > 0) {
+      if (this.forUpdate) {
         return `/comments/${this.comment.id}`;
       } else {
         return '/comments/';
@@ -292,6 +291,9 @@ Vue.component("comment-form", {
     },
     forUpdate: function() {
       return this.comment.id > 0;
+    },
+    submitBtnName: function() {
+      return this.forUpdate ? "Update" : "Commit";
     }
   },
   template: `
@@ -306,7 +308,7 @@ Vue.component("comment-form", {
             <input type="hidden" name="comment[for_from]" :value="comment.for_from" />
             <textarea name="comment[content]" class="form-control mb-3" id="comment" placeholder="Leave a comment">{{comment.content}}</textarea>
             <button class="btn btn-sm btn-outline-secondary mr-2" v-on:click.prevent.self="$emit('cancel')">Cancel</button>
-            <input type="submit" class="btn btn-sm btn-success" value="Commit" />
+            <input type="submit" class="btn btn-sm btn-success" :value="submitBtnName" />
           </div>
         </div>
       </div>
@@ -364,7 +366,7 @@ export default {
   data() {
     return {
       compiled: null,
-      currentChange: "",
+      selectedLineName: "",
       tables: [],
       leftTrs: [],
       rightTrs: [],
@@ -389,7 +391,7 @@ export default {
   },
   created() {
     EventBus.$on('show-comment-form', this.showCommentForm);
-    this.currentChange = location.hash.replace(/^#/, '');
+    this.selectedLineName = location.hash.replace(/^#/, '');
   },
   methods: {
     // コメントフォームを表示する
@@ -401,19 +403,19 @@ export default {
 
     // 次の変更箇所の行へ進む
     nextChange() {
-      this.changeCursor(1);
+      this.moveCursor(1);
     },
 
     // 前の変更箇所の行へ戻る
     prevChange() {
-      this.changeCursor(-1);
+      this.moveCursor(-1);
     },
 
     // 現在指している変更箇所から見て、進むか戻る方向へ変更箇所をカーソルを移動させる。
     // カーソルが当たっていない場合は、指定した方向から開始して初めて見つかった箇所にカーソルを当てる。
-    changeCursor(direction) {
+    moveCursor(direction) {
       if (!(direction > 0 || direction < 0)) {
-        console.warn(`changedCursor() returned. "direction" should be less than zero or grater than zero.`);
+        console.warn(`moveCursor() returned. "direction" should be less than zero or grater than zero.`);
         console.debug(`"direction" = ${direction}`);
         return;
       }
@@ -422,8 +424,8 @@ export default {
       this.rightTrs = this.rightTrs.sort((a, b) => { return a.line - b.line; });
 
       var nextIndex = -1;
-      var trs = (this.currentChange.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
-      var line = (this.currentChange.slice(2));
+      var trs = (this.selectedLineName.charAt(0) == 'l' ? this.leftTrs : this.rightTrs);
+      var line = (this.selectedLineName.slice(2));
       var index = trs.findIndex(tr => tr.line == line);
       if (direction > 0) {
         if (isNaN(parseInt(line))) {
@@ -441,9 +443,9 @@ export default {
         }
       }
       if (nextIndex != -1) {
-        this.currentChange = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
+        this.selectedLineName = trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
         location.href = '#' + trs[nextIndex].$props.side + '_' + trs[nextIndex].$props.line;
-        this.tables.forEach(e => e.currentChange = this.currentChange);
+        this.tables.forEach(e => e.selectedLineName = this.selectedLineName);
       }
     }
   }
