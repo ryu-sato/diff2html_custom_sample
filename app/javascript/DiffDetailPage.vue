@@ -60,7 +60,7 @@ let rawTemplates = {
     .replace(/\*\/$/, ""),
   "generic-line": function() {
     /*
-    <diff-tr :side="slotProps.side" line="{{lineNumber}}" type="{{type}}">
+    <diff-tr :side="slotProps.side" :selected-line-name="slotProps.selectedLineName" line="{{lineNumber}}" type="{{type}}">
       <td class="{{lineClass}} {{type}}">
         <has-comments :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}">{{{lineNumber}}}</has-comments>
       </td>
@@ -212,7 +212,7 @@ var DiffTr = Vue.component("diff-tr", {
       return typeClasses.indexOf('d2h-ins') != -1 || typeClasses.indexOf('d2h-change') != -1;
     }
   },
-  template: '<tr :class="classObject"><slot :side="side" :selected-line-name="selectedLineName"></slot></tr>'
+  template: '<tr :class="classObject"><slot :side="side"></slot></tr>'
 })
 
 /**
