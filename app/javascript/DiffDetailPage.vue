@@ -64,16 +64,15 @@ let rawTemplates = {
       <td class="{{lineClass}} {{type}}">
         <has-comments :side="slotProps.side" :comments="slotProps.comments" line="{{lineNumber}}">{{{lineNumber}}}</has-comments>
       </td>
-      <code-td :side="slotProps.side" line="{{lineNumber}}" class="{{type}}">
+      <code-td :side="slotProps.side" line="{{lineNumber}}" class="{{type}} position-relative">
         <template slot-scope="codeTrProps">
-          <div class="{{contentClass}} {{type}} position-relative">
+          <div class="{{contentClass}} {{type}}">
             {{#prefix}}
                 <span class="d2h-code-line-prefix">{{{prefix}}}</span>
             {{/prefix}}
             {{#content}}
                 <span class="d2h-code-line-ctn">{{{content}}}</span>
             {{/content}}
-            <add-btn refs="addBtn" v-if="codeTrProps.btnSeen" :side="codeTrProps.side" :line="codeTrProps.line"></add-btn>
           </div>
         </template>
       </code-td>
@@ -130,12 +129,14 @@ var CodeTD = Vue.component("code-td", {
       return (parseInt(this.line) > 0);
     }
   },
-  template:
-    '<td @mouseenter="mouseEnter" @mouseleave="mouseLeave">' +
-      '<a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>' +
-      '<slot :btn-seen="btnSeen" :side="side" :line="parseInt(this.line)">' +
-      '</slot>' +
-    '</td>',
+  template: `
+    <td @mouseenter="mouseEnter" @mouseleave="mouseLeave">
+      <a :name="anchorId" :id="anchorId" v-if="numberdLine"></a>
+      <add-btn refs="addBtn" v-if="btnSeen" :side="side" :line="parseInt(line)"></add-btn>
+      <slot :btn-seen="btnSeen" :side="side" :line="parseInt(this.line)">
+      </slot>
+    </td>
+  `,
   methods: {
     mouseEnter: function() {
       if (this.line == "") {
@@ -164,7 +165,7 @@ Vue.component("has-comments", {
     };
   },
   template: `
-    <span>
+    <span class="text-nowrap">
       <span v-if="this.lineComments().length > 0" @click="popup">★</span>
       <slot></slot>
     </span>
@@ -257,16 +258,27 @@ Vue.component("comment", {
   computed: {
     href: function() {
       return `/comments/${this.comment.id}`;
+    },
+    side: function() {
+      return this.comment.for_from ? 'before' : 'after';
     }
   },
   template: `
-    <div>
-      <pre>{{comment.content}}</pre>
-      <p class="card-text"><small class="text-muted">Updated at {{comment.updated_at}}</small></p>
-      <button class="btn btn-sm btn-outline-dark mr-2" v-on:click.prevent.self="$emit('change-edit-mode', comment)">Edit</button>
-      <a :href="href" rel="nofollow" data-method="delete" data-confirm="本当に消しますか？">
-        <button class="btn btn-sm btn-outline-danger">Delete</button>
-      </a>
+    <div class="card">
+      <div class="card-header">Comment</div>
+      <div class="card-body">
+        <pre>{{comment.content}}</pre>
+        <p class="card-text">
+          <small class="text-muted">Updated at {{comment.updated_at}}</small>
+        </p>
+        <button class="btn btn-sm btn-outline-dark mr-2" v-on:click.prevent.self="$emit('change-edit-mode', comment)">Edit</button>
+        <a :href="href" rel="nofollow" data-method="delete" data-confirm="本当に消しますか？">
+          <button class="btn btn-sm btn-outline-danger">Delete</button>
+        </a>
+      </div>
+      <div class="card-footer text-muted">
+        <small>サイド {{side}} / 行番号 {{comment.line}}</small>
+      </div>
     </div>
   `
 });
@@ -294,6 +306,9 @@ Vue.component("comment-form", {
     },
     submitBtnName: function() {
       return this.forUpdate ? "Update" : "Commit";
+    },
+    side: function() {
+      return this.comment.for_from ? 'before' : 'after';
     }
   },
   template: `
@@ -310,6 +325,9 @@ Vue.component("comment-form", {
             <button class="btn btn-sm btn-outline-secondary mr-2" v-on:click.prevent.self="$emit('cancel')">Cancel</button>
             <input type="submit" class="btn btn-sm btn-success" :value="submitBtnName" />
           </div>
+        </div>
+        <div class="card-footer text-muted">
+          <small>サイド {{side}} / 行番号 {{comment.line}}</small>
         </div>
       </div>
     </form>
