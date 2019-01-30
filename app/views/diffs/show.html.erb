@@ -1,15 +1,10 @@
-<div class="d-flex p-2" style="position: sticky; z-index: 1000; top: 0px;">
-  <label class="label mr-2 mt-1">Jump </label>
-  <div class="btn-group" role="group" aria-label="First group">
-    <button id="next" class="btn btn-secondary">Next</button>
-    <button id="prev" class="btn btn-secondary">Prev</button>
-  </div>
-</div>
-
 <p id="notice"><%= notice %></p>
 
-<div id="diff_html"></div>
-<div id="diff_string" style="display:none"><%= @diff.content.html_safe %></div>
+<div id="cd-diff2html">
+  <app v-bind:diff-unit="diffUnit"></app>
+  <div id="diff_html"></div>
+  <div id="diff_string" style="display:none"><%= @diff.content.html_safe %></div>
+</div>
 
 <%= link_to 'Edit', edit_diff_path(@diff) %> |
 <%= link_to 'Back', diffs_path %>

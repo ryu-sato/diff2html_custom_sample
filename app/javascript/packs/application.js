@@ -23,6 +23,7 @@ import "popper.js/dist/popper";
 
 // use bootstrap
 import 'bootstrap/dist/js/bootstrap';
+import './bootstrap_init';
 
 // use diff2html
 import 'diff2html';
@@ -30,5 +31,3 @@ import 'diff2html';
 // use datatable
 import 'datatables.net'
 import 'datatables.net-bs4'
-//   init datatable
-import './datatables';
