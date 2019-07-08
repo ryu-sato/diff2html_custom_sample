@@ -8,7 +8,7 @@
     "datatables.net": "^1.10.19",
     "datatables.net-bs4": "^1.10.19",
     "diff2html": "^2.10.1",
-    "jquery": "^3.4.0",
+    "jquery": "^3.4.1",
     "popper.js": "^1.15.0",
     "rails-ujs": "^5.2.3",
     "turbolinks": "^5.2.0",
