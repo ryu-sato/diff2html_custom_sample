@@ -2011,9 +2011,9 @@ detect-node@^2.0.4:
   integrity sha512-ZIzRpLJrOj7jjP2miAtgqIfmzbxa4ZOr5jJc601zklsfEx9oTzmmj2nVpIPRpNlRTIh8lc1kyViIY7BWSGNmKw==
 
 diff2html@^2.10.1:
-  version "2.10.1"
-  resolved "https://registry.yarnpkg.com/diff2html/-/diff2html-2.10.1.tgz#ae4a886cfa47fb9fc830516103abd9cd88993bb3"
-  integrity sha512-bjWmJjIpZUkMVibB/oho8WmS+tuaz5B3hZXUDo9e4Qss2Y62vgAdKjjh2QUfrILPLe3q88rcTAjMjnm0sKp+Gg==
+  version "2.11.2"
+  resolved "https://registry.yarnpkg.com/diff2html/-/diff2html-2.11.2.tgz#f3f27c6b81a75b5a8a3cfb7ae2fda2127290c809"
+  integrity sha512-FKDFFXW0cHyt+joiYeyWxbcLWZsQYeYRRrHKWZEvu+XMFMM1ChxTkGhET53zAU0tvVjyRRxRjUcrn5ImSqD0ZQ==
   dependencies:
     diff "^4.0.1"
     hogan.js "^3.0.2"
