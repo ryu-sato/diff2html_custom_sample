@@ -1,0 +1,62 @@
+version: 2
+updates:
+- package-ecosystem: bundler
+  directory: "/"
+  schedule:
+    interval: weekly
+    timezone: Asia/Tokyo
+  open-pull-requests-limit: 10
+  versioning-strategy: lockfile-only
+  ignore:
+  - dependency-name: webpacker
+    versions:
+    - ">= 4.a, < 5"
+  - dependency-name: bootsnap
+    versions:
+    - 1.5.1
+    - 1.6.0
+    - 1.7.1
+    - 1.7.2
+    - 1.7.3
+  - dependency-name: nokogiri
+    versions:
+    - 1.11.1
+    - 1.11.2
+  - dependency-name: jbuilder
+    versions:
+    - 2.11.1
+  - dependency-name: loofah
+    versions:
+    - 2.9.0
+  - dependency-name: capybara
+    versions:
+    - 3.34.0
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: weekly
+    timezone: Asia/Tokyo
+  open-pull-requests-limit: 10
+  versioning-strategy: lockfile-only
+  ignore:
+  - dependency-name: "@rails/webpacker"
+    versions:
+    - ">= 4.a, < 5"
+  - dependency-name: webpack-dev-server
+    versions:
+    - "> 3.1.14, < 4"
+  - dependency-name: datatables.net-bs4
+    versions:
+    - 1.10.23
+  - dependency-name: datatables.net
+    versions:
+    - 1.10.23
+  - dependency-name: elliptic
+    versions:
+    - 6.5.3
+  - dependency-name: jquery
+    versions:
+    - 3.5.1
+  - dependency-name: rails-ujs
+    versions:
+    - 5.2.4
